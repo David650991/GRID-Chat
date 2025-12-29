@@ -1,0 +1,48 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class='chat-container'>
+    <div class='chat-header'>
+        <h3>Sala: {{ info_sala.nombre }}</h3>
+        <a href='{{ url_for('index') }}' class='btn-salir'>Salir</a>
+    </div>
+    
+    <div id='chat-window'>
+        </div>
+    
+    <div class='chat-input'>
+        <input type='text' id='message_input' placeholder='Escribe un mensaje...'>
+        <button onclick='sendMessage()'>Enviar</button>
+    </div>
+</div>
+
+<script>
+    const socket = io();
+    const room = '{{ sala_id }}';
+    // Generar nombre aleatorio temporal
+    const username = 'Usuario_' + Math.floor(Math.random() * 1000); 
+
+    socket.emit('join', {username: username, room: room});
+
+    socket.on('message', function(msg) {
+        const chatWindow = document.getElementById('chat-window');
+        const p = document.createElement('p');
+        p.innerText = msg;
+        chatWindow.appendChild(p);
+        chatWindow.scrollTop = chatWindow.scrollHeight; // Auto-scroll
+    });
+
+    function sendMessage() {
+        const input = document.getElementById('message_input');
+        if(input.value) {
+            socket.emit('message', {msg: input.value, username: username, room: room});
+            input.value = '';
+        }
+    }
+    
+    // Enviar con Enter
+    document.getElementById('message_input').addEventListener('keypress', function (e) {
+        if (e.key === 'Enter') sendMessage();
+    });
+</script>
+{% endblock %}

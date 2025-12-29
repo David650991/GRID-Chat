@@ -1,0 +1,18 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class='container'>
+    <h2>Salas Cercanas a tu Ubicación</h2>
+    <p class='ubicacion-detectada'>Coordenadas: 18.2428, -96.1450</p>
+    
+    <div class='grid-salas'>
+        {% for id, sala in salas.items() %}
+        <div class='card-sala'>
+            <h3>{{ sala.nombre }}</h3>
+            <span class='badge'>{{ sala.geo }}</span>
+            <a href='{{ url_for('chat', sala_id=id) }}' class='btn-entrar'>Entrar</a>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,15 @@
+body { font-family: 'Segoe UI', sans-serif; margin: 0; background-color: #f4f4f9; }
+header { background-color: #2c3e50; color: white; padding: 1rem; text-align: center; }
+nav a { color: white; margin: 0 10px; text-decoration: none; }
+.container { max-width: 800px; margin: 20px auto; padding: 20px; }
+.grid-salas { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 20px; }
+.card-sala { background: white; padding: 20px; border-radius: 8px; box-shadow: 0 2px 5px rgba(0,0,0,0.1); text-align: center; }
+.btn-entrar { display: inline-block; margin-top: 10px; padding: 10px 20px; background: #27ae60; color: white; text-decoration: none; border-radius: 5px; }
+.chat-container { max-width: 600px; margin: 20px auto; background: white; border-radius: 8px; overflow: hidden; height: 80vh; display: flex; flex-direction: column; }
+.chat-header { background: #34495e; color: white; padding: 10px; display: flex; justify-content: space-between; align-items: center; }
+#chat-window { flex: 1; padding: 20px; overflow-y: auto; background: #ecf0f1; }
+#chat-window p { background: white; padding: 8px; border-radius: 5px; margin: 5px 0; width: fit-content; }
+.chat-input { padding: 10px; background: #bdc3c7; display: flex; }
+.chat-input input { flex: 1; padding: 10px; border: none; border-radius: 3px; }
+.chat-input button { padding: 10px 20px; margin-left: 10px; background: #2980b9; color: white; border: none; cursor: pointer; }
+.btn-salir { color: #e74c3c; text-decoration: none; font-size: 0.9em; }
