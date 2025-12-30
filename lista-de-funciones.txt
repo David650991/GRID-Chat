@@ -1,0 +1,257 @@
+# 📊 Lista Unificada de Funciones
+
+## Ordenadas por Nivel de Complejidad de Implementación
+
+### I. Funciones Básicas
+*(Baja complejidad – implementación rápida, alto impacto inicial)*
+
+- Envío de mensajes de texto en tiempo real.
+- Registro visible de la hora exacta de envío del mensaje.
+- Indicador visual de “Usuario escribiendo…”.
+- Historial persistente de mensajes (últimos 50).
+- Aislamiento de conversaciones por salas independientes.
+- Creación de salas o canales públicos.
+- Indicador de usuario conectado / desconectado.
+- Lista lateral de usuarios conectados en tiempo real.
+- Registro de hora de conexión y desconexión.
+- Distinción visual entre mensajes propios y ajenos.
+- Reacciones básicas con emojis a mensajes.
+- Biblioteca / selector de emojis integrado.
+- Generación automática de avatar único por usuario.
+- Asignación y persistencia de nickname (apodo).
+- Previsualización de avatar antes de ingresar.
+- Eliminación manual de mensajes (moderación básica).
+- Notificaciones sonoras de mensajes nuevos.
+- Alerta visual en la pestaña del navegador (cambio de título).
+- Diseño responsivo para móvil y escritorio.
+
+### II. Funciones de Complejidad Media
+*(Requieren estado persistente, lógica adicional y mejor UX)*
+
+- Registro y autenticación de usuarios.
+- Gestión de perfiles de usuario.
+- Carga y edición de foto de perfil.
+- Creación de chats privados entre usuarios.
+- Creación de salas privadas.
+- Creación de salas temáticas.
+- Navegación por categorías de salas (Local, Cercano, Regional).
+- Respuesta directa a mensajes (quote / reply).
+- Respuestas en hilo para chats grupales.
+- Edición de mensajes enviados.
+- Registro del historial de ediciones de mensajes.
+- Fijado de mensajes importantes.
+- Fijado de conversaciones.
+- Marcado de mensajes como no leídos.
+- Búsqueda de mensajes dentro del chat.
+- Búsqueda de conversaciones pasadas.
+- Búsqueda de archivos compartidos.
+- Silenciar notificaciones por sala.
+- Notificaciones solo para menciones (@usuario).
+- Envío de imágenes mediante URLs.
+- Renderizado automático de imágenes desde enlaces.
+- Vista previa básica de enlaces compartidos.
+- Reproductor integrado de videos de YouTube.
+- Reproducción automática de enlaces de YouTube.
+- Biblioteca de GIFs integrada.
+- Biblioteca de stickers integrada.
+- Soporte para comandos rápidos (slash commands).
+- Catálogo de frases indexable por categorías (SEO).
+- Botón para copiar frases al portapapeles.
+
+### III. Funciones Avanzadas
+*(Alta complejidad – lógica automatizada, seguridad y control)*
+
+- Panel de inicio de sesión seguro para administrador.
+- Indicador visual activo de “MODO ADMIN”.
+- Creación dinámica de nuevas salas por administrador.
+- Moderación global: eliminación de mensajes para todos.
+- Creación de nuevas frases y categorías de contenido.
+- Eliminación automática de mensajes spam.
+- Eliminación automática de publicidad engañosa.
+- Eliminación automática de enlaces maliciosos.
+- Detección y eliminación de lenguaje ofensivo.
+- Detección y eliminación de números telefónicos.
+- Detección y eliminación de nombres completos.
+- Detección y eliminación de cuentas bancarias.
+- Detección y eliminación de direcciones físicas.
+- Detección y eliminación de fechas de nacimiento.
+- Integración de bots de bienvenida.
+- Integración de bots de moderación.
+- Integración de bots informativos.
+- Restricción de chats privados a usuarios con suscripción activa.
+
+### IV. Funciones Críticas y de Muy Alta Complejidad
+*(Alta demanda técnica, infraestructura y seguridad avanzada)*
+
+- PWA (Progressive Web App) instalable como aplicación.
+- Modo offline básico mediante Service Worker.
+- Espacios reservados para publicidad (layout de tres columnas).
+- Envío de archivos adjuntos.
+- Envío de mensajes de audio.
+- Llamadas de voz en tiempo real.
+- Videollamadas en tiempo real.
+- Compartición de ubicación en tiempo real.
+- Configuración de duración de ubicación compartida.
+- Cifrado de extremo a extremo (E2EE) en chats privados.
+- Integración con GitHub mediante API.
+- Integración con GitLab mediante API.
+- Integración con Trello mediante API.
+
+chat_platform/
+│
+├── app.py
+├── config.py
+├── requirements.txt
+├── wsgi.py
+├── README.md
+│
+├── core/
+│   ├── __init__.py
+│   ├── app_factory.py
+│   ├── extensions.py
+│   ├── sockets.py
+│   ├── permissions.py
+│   └── utils.py
+│
+├── database/
+│   ├── __init__.py
+│   ├── sqlite.db
+│   ├── migrations/
+│   ├── models/
+│   │   ├── user.py
+│   │   ├── profile.py
+│   │   ├── session.py
+│   │   ├── room.py
+│   │   ├── room_category.py
+│   │   ├── message.py
+│   │   ├── message_edit.py
+│   │   ├── reaction.py
+│   │   ├── attachment.py
+│   │   ├── notification.py
+│   │   ├── phrase.py
+│   │   ├── moderation_log.py
+│   │   └── subscription.py
+│   └── repositories/
+│
+├── auth/
+│   ├── __init__.py
+│   ├── routes.py
+│   ├── services.py
+│   └── validators.py
+│
+├── users/
+│   ├── __init__.py
+│   ├── routes.py
+│   ├── services.py
+│   ├── avatar.py
+│   └── presence.py
+│
+├── chat/
+│   ├── __init__.py
+│   ├── routes.py
+│   ├── messages.py
+│   ├── threads.py
+│   ├── reactions.py
+│   ├── rooms.py
+│   ├── search.py
+│   └── pins.py
+│
+├── media/
+│   ├── __init__.py
+│   ├── uploads.py
+│   ├── images.py
+│   ├── audio.py
+│   ├── video.py
+│   ├── previews.py
+│   └── youtube.py
+│
+├── notifications/
+│   ├── __init__.py
+│   ├── sounds.py
+│   ├── mentions.py
+│   ├── browser_alerts.py
+│   └── preferences.py
+│
+├── admin/
+│   ├── __init__.py
+│   ├── routes.py
+│   ├── moderation.py
+│   ├── room_management.py
+│   ├── phrase_management.py
+│   └── dashboards.py
+│
+├── moderation/
+│   ├── __init__.py
+│   ├── spam_filter.py
+│   ├── profanity_filter.py
+│   ├── link_scanner.py
+│   ├── pii_detector.py
+│   └── auto_actions.py
+│
+├── bots/
+│   ├── __init__.py
+│   ├── welcome_bot.py
+│   ├── moderation_bot.py
+│   └── info_bot.py
+│
+├── integrations/
+│   ├── __init__.py
+│   ├── github.py
+│   ├── gitlab.py
+│   └── trello.py
+│
+├── security/
+│   ├── __init__.py
+│   ├── encryption.py
+│   ├── e2ee.py
+│   ├── rate_limit.py
+│   └── validation.py
+│
+├── realtime/
+│   ├── __init__.py
+│   ├── voice.py
+│   ├── video.py
+│   ├── location.py
+│   └── presence.py
+│
+├── pwa/
+│   ├── __init__.py
+│   ├── manifest.json
+│   ├── service_worker.js
+│   └── offline_cache.py
+│
+├── templates/
+│   ├── base.html
+│   ├── auth/
+│   ├── chat/
+│   ├── admin/
+│   ├── users/
+│   ├── phrases/
+│   └── components/
+│
+├── static/
+│   ├── css/
+│   │   ├── base.css
+│   │   ├── layout.css
+│   │   ├── chat.css
+│   │   └── admin.css
+│   ├── js/
+│   │   ├── core.js
+│   │   ├── chat.js
+│   │   ├── notifications.js
+│   │   ├── media.js
+│   │   ├── admin.js
+│   │   ├── pwa.js
+│   │   └── websocket.js
+│   └── assets/
+│
+├── tests/
+│   ├── unit/
+│   ├── integration/
+│   └── e2e/
+│
+└── docs/
+    ├── architecture.md
+    ├── api.md
+    ├── security.md
+    └── roadmap.md

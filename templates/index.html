@@ -2,17 +2,90 @@
 
 {% block content %}
 <div class='container'>
-    <h2>Salas Cercanas a tu Ubicación</h2>
-    <p class='ubicacion-detectada'>Coordenadas: 18.2428, -96.1450</p>
     
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2>Salas Cercanas</h2>
+        {% if es_admin %}
+            <div>
+                <span style="background:red; color:white; padding:5px 10px; border-radius:5px; font-size: 0.8em;">MODO ADMIN</span>
+                <a href="{{ url_for('logout') }}" style="color: #666; font-size: 0.8em; margin-left: 10px;">Salir</a>
+            </div>
+        {% endif %}
+    </div>
+
+    {% if es_admin %}
+    <div style="background: #fff3cd; padding: 15px; border-radius: 8px; margin-bottom: 20px; border: 1px solid #ffeeba;">
+        <h3>🛠️ Crear Nueva Sala</h3>
+        <form action="{{ url_for('create_room') }}" method="POST" style="display: flex; gap: 10px; flex-wrap: wrap;">
+            <input type="text" name="nombre" placeholder="Nombre (Ej: Otatitlán)" required style="padding: 8px;">
+            <select name="geo" style="padding: 8px;">
+                <option value="local">Local</option>
+                <option value="cercano">Cercano</option>
+                <option value="regional">Regional</option>
+                <option value="global">Global</option>
+            </select>
+            <input type="text" name="descripcion" placeholder="Descripción breve" style="padding: 8px; flex: 1;">
+            <button type="submit" style="background: #2c3e50; color: white; border: none; padding: 8px 15px; cursor: pointer;">+ Crear</button>
+        </form>
+    </div>
+    {% endif %}
+    
+    <p class='ubicacion-detectada'>📍 Coordenadas: 18.2428, -96.1450</p>
+    
+    <div style="background: #e8f6f3; padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; border: 1px solid #d1f2eb;">
+        <label for="userNick" style="font-weight: bold; color: #16a085;">👤 Elige tu Identidad:</label>
+        
+        <div style="margin: 15px auto;">
+            <img id="avatarPreview" src="https://api.dicebear.com/7.x/avataaars/svg?seed=Anónimo&backgroundColor=b6e3f4" 
+                 style="width: 80px; height: 80px; border-radius: 50%; border: 3px solid #16a085; background: white;">
+        </div>
+
+        <input type="text" id="userNick" value="{{ nick_guardado }}" placeholder="Ej: Jarocho_01" 
+               style="padding: 10px; border-radius: 5px; border: 1px solid #ccc; width: 60%; font-size: 1.1em; text-align: center;"
+               oninput="updateAvatarPreview()">
+    </div>
+
     <div class='grid-salas'>
-        {% for id, sala in salas.items() %}
+        {% for sala in salas %}
         <div class='card-sala'>
             <h3>{{ sala.nombre }}</h3>
             <span class='badge'>{{ sala.geo }}</span>
-            <a href='{{ url_for('chat', sala_id=id) }}' class='btn-entrar'>Entrar</a>
+            <p style="font-size: 0.8em; color: #666;">{{ sala.descripcion }}</p>
+            <button onclick="entrarSala('{{ sala.id }}')" class='btn-entrar'>Entrar</button>
         </div>
         {% endfor %}
     </div>
+
+    <footer style="margin-top: 50px; text-align: center; font-size: 0.8em; color: #aaa;">
+        <p>&copy; 2025 Salas de Chat Grupales</p>
+        {% if not es_admin %}
+            <a href="{{ url_for('admin_page') }}" style="color: #ddd; text-decoration: none;">Acceso Admin</a>
+        {% endif %}
+    </footer>
 </div>
+
+<script>
+    // Función para actualizar la carita en tiempo real mientras escribes
+    function updateAvatarPreview() {
+        const nick = document.getElementById('userNick').value.trim() || 'Anónimo';
+        const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${nick}&backgroundColor=b6e3f4`;
+        document.getElementById('avatarPreview').src = url;
+    }
+    
+    window.onload = updateAvatarPreview;
+
+    function entrarSala(salaId) {
+        const nickInput = document.getElementById('userNick');
+        let nick = nickInput.value.trim();
+        
+        if (!nick) {
+            alert("¡Por favor elige un apodo antes de entrar!");
+            nickInput.focus();
+            return;
+        }
+        
+        // La URL ya está limpia, solo llevamos el nick
+        window.location.href = `/chat/${salaId}?nick=${encodeURIComponent(nick)}`;
+    }
+</script>
 {% endblock %}

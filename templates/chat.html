@@ -3,46 +3,306 @@
 {% block content %}
 <div class='chat-container'>
     <div class='chat-header'>
-        <h3>Sala: {{ info_sala.nombre }}</h3>
+        <div class="header-info">
+            <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ info_sala.nombre | urlencode }}&backgroundColor=16a085" class="header-avatar" alt="Sala">
+            
+            <div>
+                <h3 style="margin: 0; font-size: 1.1em;">{{ info_sala.nombre }}</h3>
+                {% if es_admin %}
+                    <span style="background: #e74c3c; padding: 2px 6px; border-radius: 4px; font-size: 0.7em;">MODO ADMIN</span>
+                {% endif %}
+                <small style="font-size: 0.8em; opacity: 0.9; display:block;">📍 {{ info_sala.geo }}</small>
+            </div>
+        </div>
         <a href='{{ url_for('index') }}' class='btn-salir'>Salir</a>
     </div>
     
-    <div id='chat-window'>
+    <div class="chat-layout">
+        <div class="chat-main">
+            <div id='chat-window'></div>
+            
+            <div id="typing-indicator" class="typing-text"></div>
+            
+            <div class='chat-input'>
+                <div id="emoji-picker-container"></div>
+                <button id="emoji-trigger" class="btn-emoji" type="button">😀</button>
+                
+                <input type='text' id='message_input' placeholder='Escribe un mensaje...' autocomplete="off">
+                <button onclick='sendMessage()'>➤</button>
+            </div>
         </div>
-    
-    <div class='chat-input'>
-        <input type='text' id='message_input' placeholder='Escribe un mensaje...'>
-        <button onclick='sendMessage()'>Enviar</button>
+
+        <div class="users-sidebar">
+            <div class="users-header">👥 En línea</div>
+            <ul id="users-list">
+                </ul>
+        </div>
     </div>
 </div>
 
+<style>
+    /* Estilos para estado ONLINE */
+    .status-dot {
+        height: 10px;
+        width: 10px;
+        background-color: #2ecc71;
+        border-radius: 50%;
+        display: inline-block;
+        margin-right: 8px;
+        box-shadow: 0 0 5px #2ecc71;
+    }
+    #users-list li {
+        padding: 10px;
+        border-bottom: 1px solid #eee;
+        transition: background 0.2s;
+    }
+    #users-list li:hover {
+        background-color: #f9f9f9;
+    }
+</style>
+
+<script type="module">
+    import { createPopup } from 'https://unpkg.com/@picmo/popup-picker@latest/dist/index.js?module';
+
+    document.addEventListener('DOMContentLoaded', () => {
+        const trigger = document.querySelector('#emoji-trigger');
+        const input = document.querySelector('#message_input');
+
+        try {
+            const picker = createPopup({}, {
+                referenceElement: trigger,
+                triggerElement: trigger,
+                position: 'top-start'
+            });
+
+            trigger.addEventListener('click', () => {
+                picker.toggle();
+            });
+
+            picker.addEventListener('emoji:select', (selection) => {
+                const start = input.selectionStart;
+                const end = input.selectionEnd;
+                const text = input.value;
+                input.value = text.substring(0, start) + selection.emoji + text.substring(end);
+                input.focus();
+                // Mover cursor después del emoji
+                input.selectionStart = input.selectionEnd = start + selection.emoji.length;
+            });
+        } catch (error) {
+            console.error("Error cargando emojis:", error);
+        }
+    });
+</script>
+
 <script>
+    // --- LÓGICA PRINCIPAL DEL CHAT (SOCKET.IO) ---
     const socket = io();
     const room = '{{ sala_id }}';
-    // Generar nombre aleatorio temporal
-    const username = 'Usuario_' + Math.floor(Math.random() * 1000); 
+    const myUsername = '{{ nickname }}';
+    const isAdmin = {{ 'true' if es_admin else 'false' }};
 
-    socket.emit('join', {username: username, room: room});
+    // 1. Unirse a la sala inmediatamente
+    socket.emit('join', { username: myUsername, room: room });
 
-    socket.on('message', function(msg) {
-        const chatWindow = document.getElementById('chat-window');
-        const p = document.createElement('p');
-        p.innerText = msg;
-        chatWindow.appendChild(p);
-        chatWindow.scrollTop = chatWindow.scrollHeight; // Auto-scroll
+    // 2. Manejo de USUARIOS CONECTADOS
+    socket.on('update_users', function(listaUsuarios) {
+        const listElement = document.getElementById('users-list');
+        listElement.innerHTML = ''; // Limpiar lista
+        
+        if (listaUsuarios.length === 0) {
+            listElement.innerHTML = '<li style="color:#999; text-align:center;">Nadie más aquí...</li>';
+        }
+
+        listaUsuarios.forEach(user => {
+            const li = document.createElement('li');
+            li.style.display = 'flex';
+            li.style.alignItems = 'center';
+
+            // Avatar pequeño
+            const img = document.createElement('img');
+            img.src = getAvatar(user);
+            img.style.width = '32px';
+            img.style.height = '32px';
+            img.style.borderRadius = '50%';
+            img.style.marginRight = '10px';
+            img.style.border = '1px solid #ddd';
+
+            // Punto verde de estado
+            const dot = document.createElement('div');
+            dot.className = 'status-dot';
+
+            // Nombre
+            const span = document.createElement('span');
+            span.innerText = user;
+            
+            if (user === myUsername) {
+                span.style.fontWeight = 'bold';
+                span.innerText += ' (Tú)';
+                li.style.backgroundColor = '#e8f6f3'; // Resaltar mi usuario
+            }
+
+            li.appendChild(dot);
+            li.appendChild(img);
+            li.appendChild(span);
+            listElement.appendChild(li);
+        });
     });
 
+    // 3. Manejo de Mensajes
+    function appendMessage(data, isSystem = false) {
+        const chatWindow = document.getElementById('chat-window');
+        const div = document.createElement('div');
+        
+        if (data.id) div.id = 'msg-' + data.id;
+
+        if (isSystem) {
+            div.className = 'mensaje mensaje-sistema';
+            div.innerText = data;
+        } else {
+            const isMe = data.username === myUsername;
+            div.className = isMe ? 'mensaje mensaje-mio' : 'mensaje mensaje-otro';
+            
+            let htmlContent = '';
+            
+            if (!isMe) {
+                htmlContent += `
+                    <div style="display: flex; align-items: center; margin-bottom: 5px;">
+                        <img src="${getAvatar(data.username)}" style="width: 25px; height: 25px; border-radius: 50%; margin-right: 5px; border: 1px solid #ccc;">
+                        <span class="usuario-label" style="margin:0;">${data.username}</span>
+                    </div>
+                `;
+                playNotification();
+            }
+            
+            htmlContent += formatMessage(data.msg);
+            
+            const hora = data.hora || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+            htmlContent += `<span class="msg-time">${hora}</span>`;
+            
+            htmlContent += generarHTMLReacciones(data.id, data.reacciones || {});
+
+            if (isAdmin && data.id) {
+                htmlContent += ` <span class="btn-borrar" onclick="deleteMessage(${data.id})" title="Eliminar">🗑️</span>`;
+            }
+            
+            div.innerHTML = htmlContent;
+        }
+        chatWindow.appendChild(div);
+        chatWindow.scrollTop = chatWindow.scrollHeight;
+    }
+
+    // Funciones Auxiliares
+    function getAvatar(username) {
+        const safeUser = encodeURIComponent(username);
+        return `https://api.dicebear.com/7.x/avataaars/svg?seed=${safeUser}&backgroundColor=b6e3f4`;
+    }
+
+    const notifSound = new Audio('https://cdn.freesound.org/previews/536/536108_10813958-lq.mp3');
+    function playNotification() {
+        notifSound.play().catch(e => console.log("Audio bloqueado por navegador"));
+    }
+
+    function formatMessage(text) {
+        const urlRegex = /(https?:\/\/[^\s]+)/g;
+        return text.replace(urlRegex, function(url) {
+            if (url.match(/\.(jpeg|jpg|gif|png)$/i)) {
+                return `<br><a href="${url}" target="_blank"><img src="${url}" class="chat-image" alt="Imagen"></a>`;
+            } else if (url.includes('youtube.com/watch') || url.includes('youtu.be/')) {
+                let videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop();
+                return `<br><div class="video-container"><iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe></div>`;
+            } else {
+                return `<a href="${url}" target="_blank" class="chat-link">${url}</a>`;
+            }
+        });
+    }
+
+    // --- ESCRIBIENDO... ---
+    let typingTimer;
+    const inputField = document.getElementById('message_input');
+    const typingDiv = document.getElementById('typing-indicator');
+
+    inputField.addEventListener('input', () => {
+        socket.emit('typing', { room: room, username: myUsername });
+    });
+
+    socket.on('display_typing', function(data) {
+        typingDiv.innerText = `${data.username} está escribiendo...`;
+        typingDiv.style.opacity = '1';
+        clearTimeout(typingTimer);
+        typingTimer = setTimeout(() => {
+            typingDiv.style.opacity = '0';
+        }, 1000);
+    });
+
+    // --- REACCIONES ---
+    const reactionOptions = ['❤️', '😂', '😮', '😢', '👍'];
+    function generarHTMLReacciones(msgId, reaccionesDict) {
+        let buttonsHtml = '<div class="reaction-buttons" style="margin-right:10px;">';
+        reactionOptions.forEach(emoji => {
+            buttonsHtml += `<button class="reaction-btn" onclick="enviarReaccion(${msgId}, '${emoji}')">${emoji}</button>`;
+        });
+        buttonsHtml += '</div>';
+
+        let countsHtml = '';
+        for (const [emoji, count] of Object.entries(reaccionesDict)) {
+            if (count > 0) {
+                countsHtml += `<span class="reaction-count">${emoji} ${count}</span>`;
+            }
+        }
+        return `<div class="reaction-bar" id="react-bar-${msgId}">${countsHtml}${buttonsHtml}</div>`;
+    }
+
+    window.enviarReaccion = function(msgId, emoji) {
+        socket.emit('reaccionar', { id: msgId, emoji: emoji, room: room, username: myUsername });
+        if (navigator.vibrate) navigator.vibrate(50);
+    };
+
+    socket.on('actualizar_reacciones', function(data) {
+        const bar = document.getElementById('react-bar-' + data.id);
+        if (bar) bar.outerHTML = generarHTMLReacciones(data.id, data.reacciones);
+    });
+
+    // --- EVENTOS SOCKET ---
+    socket.on('message', function(data) {
+        appendMessage(data, typeof data === 'string');
+    });
+
+    socket.on('historial_previo', function(historial) {
+        historial.forEach(item => appendMessage(item, false));
+        const div = document.createElement('div');
+        div.style.textAlign = 'center';
+        div.style.color = '#888';
+        div.style.margin = '10px 0';
+        div.style.fontSize = '0.8em';
+        div.innerText = '--- Historial Reciente ---';
+        document.getElementById('chat-window').appendChild(div);
+    });
+    
+    // --- ENVIO ---
     function sendMessage() {
-        const input = document.getElementById('message_input');
-        if(input.value) {
-            socket.emit('message', {msg: input.value, username: username, room: room});
-            input.value = '';
+        const text = inputField.value.trim();
+        if (text) {
+            socket.emit('message', { msg: text, username: myUsername, room: room });
+            inputField.value = '';
+            inputField.focus();
         }
     }
     
-    // Enviar con Enter
-    document.getElementById('message_input').addEventListener('keypress', function (e) {
+    inputField.addEventListener('keypress', function (e) {
         if (e.key === 'Enter') sendMessage();
     });
+
+    // Borrado (Admin)
+    window.deleteMessage = function(id) {
+        if (confirm('¿Borrar mensaje?')) socket.emit('borrar_mensaje', { id: id, room: room });
+    };
+    socket.on('mensaje_eliminado', function(data) {
+        const msgDiv = document.getElementById('msg-' + data.id);
+        if (msgDiv) {
+            msgDiv.style.opacity = '0';
+            setTimeout(() => msgDiv.remove(), 500);
+        }
+    });
+
 </script>
 {% endblock %}

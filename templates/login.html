@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class='container' style="max-width: 400px; margin-top: 50px;">
+    <div class="card-sala" style="text-align: left; background: #fff3cd; border: 1px solid #ffeeba;">
+        <h3 style="text-align: center; color: #856404;">🔐 Acceso Restringido</h3>
+        <p style="text-align: center; font-size: 0.9em;">Zona exclusiva para administradores del sitio.</p>
+        
+        {% with messages = get_flashed_messages() %}
+            {% if messages %}
+                <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 10px; text-align: center;">
+                    {{ messages[0] }}
+                </div>
+            {% endif %}
+        {% endwith %}
+
+        <form action="{{ url_for('admin_login') }}" method="POST">
+            <label>Contraseña Maestra:</label>
+            <input type="password" name="password" placeholder="••••••" style="width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc;">
+            
+            <button type="submit" style="width: 100%; padding: 10px; background: #856404; color: white; border: none; border-radius: 5px; cursor: pointer;">Ingresar</button>
+        </form>
+        
+        <div style="text-align: center; margin-top: 15px;">
+            <a href="{{ url_for('index') }}" style="color: #666; font-size: 0.9em;">Volver al Inicio</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,31 @@
+{% extends 'base.html' %}
+
+{% block content %}
+<div class='container'>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="text-transform: capitalize;">Frases de {{ categoria }}</h2>
+        <a href="{{ url_for('frases_index') }}" class="btn-salir" style="background: #95a5a6;">Volver</a>
+    </div>
+
+    <div style="margin-top: 20px;">
+        {% for frase in frases %}
+        <div style="background: white; padding: 20px; border-radius: 8px; margin-bottom: 15px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); border-left: 4px solid #f1c40f;">
+            <p style="font-size: 1.1em; font-style: italic; color: #333;">"{{ frase.texto }}"</p>
+            <small style="color: #777;">— {{ frase.autor }}</small>
+            
+            <button onclick="copiarAlChat('{{ frase.texto }}')" style="float: right; cursor: pointer; background: #eee; border: none; padding: 5px 10px; border-radius: 4px; font-size: 0.8em;">📋 Copiar</button>
+        </div>
+        {% endfor %}
+    </div>
+</div>
+
+<script>
+    function copiarAlChat(texto) {
+        navigator.clipboard.writeText(texto).then(function() {
+            alert('¡Frase copiada! Ahora pégala en una sala de chat.');
+        }, function(err) {
+            console.error('Error al copiar: ', err);
+        });
+    }
+</script>
+{% endblock %}
