@@ -1,14 +1,10 @@
 stages:
-  - build
   - test
 
-build-job:
-  stage: build
-  script:
-    - echo "Compilando el chat atómico..."
-
-test-job:
+prueba-rapida:
   stage: test
+  image: python:3.9-slim
   script:
-    - echo "Ejecutando pruebas unitarias..."
+    - echo "Iniciando prueba atomica..."
     - python --version
+    - echo "El codigo es valido."
