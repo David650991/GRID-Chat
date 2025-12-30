@@ -1,23 +1,19 @@
-// Service Worker Básico - Estrategia: Network First (Red primero, si falla, usa caché)
-const CACHE_NAME = 'chat-3v-v1';
+// Service Worker GRID-Chat
+const CACHE_NAME = 'grid-chat-v2-atomic';
 const urlsToCache = [
   '/',
   '/static/css/style.css',
-  '/static/manifest.json'
+  '/static/manifest.json',
+  '/static/img/logo.ico'
 ];
 
-// Instalación: Guardamos archivos críticos
 self.addEventListener('install', event => {
   event.waitUntil(
     caches.open(CACHE_NAME)
-      .then(cache => {
-        console.log('Cache abierta');
-        return cache.addAll(urlsToCache);
-      })
+      .then(cache => cache.addAll(urlsToCache))
   );
 });
 
-// Activación: Limpiamos cachés viejas
 self.addEventListener('activate', event => {
   event.waitUntil(
     caches.keys().then(cacheNames => {
@@ -32,13 +28,8 @@ self.addEventListener('activate', event => {
   );
 });
 
-// Intercepción de peticiones (Fetch)
 self.addEventListener('fetch', event => {
   event.respondWith(
-    fetch(event.request)
-      .catch(() => {
-        // Si no hay internet, intentamos servir desde la caché
-        return caches.match(event.request);
-      })
+    fetch(event.request).catch(() => caches.match(event.request))
   );
 });

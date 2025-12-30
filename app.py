@@ -129,10 +129,8 @@ def handle_reaction(data):
         'reacciones': nuevos_conteos
     }, to=room)
 
-# NUEVO: Evento connect para enviar datos iniciales inmediatamente
 @socketio.on('connect')
 def handle_connect():
-    # Solo confirmación de conexión, la lógica de sala va en 'join'
     pass
 
 @socketio.on('join')
@@ -142,17 +140,12 @@ def on_join(data):
     sid = request.sid
     join_room(room)
     
-    # Registramos usuario
     USUARIOS_ACTIVOS[sid] = {'nick': username, 'sala': room}
     
-    # 1. Enviar historial al usuario que entra
     historial = db_manager.obtener_historial(room)
     emit('historial_previo', historial, to=sid)
     
-    # 2. Avisar a la sala
     send(f'{username} ha entrado a la sala.', to=room)
-    
-    # 3. Actualizar lista de usuarios (ESTO SE REPARA AHORA)
     emitir_lista_usuarios(room)
 
 @socketio.on('typing')
@@ -168,8 +161,6 @@ def on_disconnect():
         user_data = USUARIOS_ACTIVOS[sid]
         room = user_data['sala']
         nick = user_data['nick']
-        
-        # Eliminamos usuario ANTES de avisar
         del USUARIOS_ACTIVOS[sid]
         
         send(f'{nick} ha salido de la sala.', to=room)
@@ -194,11 +185,47 @@ def handle_delete(data):
     emit('mensaje_eliminado', {'id': msg_id}, to=room)
 
 def emitir_lista_usuarios(sala_id):
-    # Filtramos usuarios que están en ESTA sala específica
     lista = [u['nick'] for u in USUARIOS_ACTIVOS.values() if u['sala'] == sala_id]
-    # Eliminamos duplicados (si alguien tiene 2 pestañas abiertas con el mismo nombre)
     lista_unica = list(set(lista))
     socketio.emit('update_users', lista_unica, to=sala_id)
+
+# --- SEO Y SEGURIDAD (GRID-Chat) ---
+
+@app.route('/robots.txt')
+def robots():
+    # URL REAL ACTUALIZADA
+    base_url = "https://grid-chat-lknf.onrender.com" 
+    content = f"User-agent: *\nAllow: /\nSitemap: {base_url}/sitemap.xml"
+    return content, 200, {'Content-Type': 'text/plain'}
+
+@app.route('/sitemap.xml')
+def sitemap():
+    # URL REAL ACTUALIZADA
+    base_url = "https://grid-chat-lknf.onrender.com"
+    
+    xml = f'''<?xml version="1.0" encoding="UTF-8"?>
+    <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+        <url>
+            <loc>{base_url}/</loc>
+            <lastmod>{datetime.now().strftime('%Y-%m-%d')}</lastmod>
+            <changefreq>daily</changefreq>
+            <priority>1.0</priority>
+        </url>
+        <url>
+            <loc>{base_url}/frases</loc>
+            <lastmod>{datetime.now().strftime('%Y-%m-%d')}</lastmod>
+            <changefreq>weekly</changefreq>
+            <priority>0.8</priority>
+        </url>
+    </urlset>'''
+    return xml, 200, {'Content-Type': 'application/xml'}
+
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    return response
 
 if __name__ == '__main__':
     socketio.run(app, debug=True, port=5000)

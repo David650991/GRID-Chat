@@ -2,13 +2,25 @@
 <html lang='es'>
 <head>
     <meta charset='UTF-8'>
-    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'> <title>{% block title %}Chat Tres Valles{% endblock %}</title>
+    <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
     
+    <title>{% block title %}GRID-Chat | Conexión en Tiempo Real{% endblock %}</title>
+    <meta name="description" content="GRID-Chat: La plataforma de comunicación geolocalizada más rápida y segura. Conéctate con tu comunidad en tiempo real.">
+    <meta name="keywords" content="chat, grid-chat, tiempo real, socketio, flask, comunidad, mensajería">
+    <meta name="author" content="David Vidal Ramirez">
+    <meta name="robots" content="index, follow">
+
+    <meta property="og:title" content="GRID-Chat - Mensajería Global">
+    <meta property="og:description" content="Únete a las salas de chat geolocalizadas de GRID-Chat.">
+    <meta property="og:image" content="{{ url_for('static', filename='img/logo-web-app-manifest-512x512.png') }}">
+    <meta property="og:url" content="https://grid-chat-lknf.onrender.com">
+    <meta property="og:type" content="website">
+
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#075e54">
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/134/134914.png">
+    <meta name="theme-color" content="#2c3e50">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/logo.ico') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.ico') }}">
+    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-logo.png') }}">
 
     <link rel='stylesheet' href='{{ url_for('static', filename='css/style.css') }}'>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js'></script>
@@ -17,19 +29,18 @@
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
                 navigator.serviceWorker.register('/static/sw.js')
-                    .then(registration => {
-                        console.log('ServiceWorker registrado con éxito:', registration.scope);
-                    })
-                    .catch(err => {
-                        console.log('Fallo al registrar ServiceWorker:', err);
-                    });
+                    .then(registration => console.log('GRID-Chat SW registrado:', registration.scope))
+                    .catch(err => console.log('Fallo SW:', err));
             });
         }
     </script>
 </head>
 <body>
     <header>
-        <h1>🗨️ Salas de Chat Grupales</h1>
+        <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
+            <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="GRID-Chat Logo" style="height: 40px; width: auto;">
+            <h1>GRID-Chat</h1>
+        </div>
         <nav>
             <a href='{{ url_for('index') }}'>Inicio</a>
             <a href='{{ url_for('frases_index') }}'>📚 Frases</a>
@@ -37,12 +48,9 @@
     </header>
     
     <div class="main-layout">
-        
         <aside class="ad-space ad-left">
             <div class="ad-placeholder">
-                <small>Espacio Publicitario</small>
-                <br>
-                <span>160x600</span>
+                <small>Publicidad GRID</small>
             </div>
         </aside>
 
@@ -52,16 +60,13 @@
 
         <aside class="ad-space ad-right">
             <div class="ad-placeholder">
-                <small>Espacio Publicitario</small>
-                <br>
-                <span>160x600</span>
+                <small>Publicidad GRID</small>
             </div>
         </aside>
-        
     </div>
 
     <footer>
-        <p>Proyecto Atómico - Versión Local 1.0</p>
+        <p>GRID-Chat © 2025 - Desarrollado por David Vidal Ramirez</p>
     </footer>
 </body>
 </html>
