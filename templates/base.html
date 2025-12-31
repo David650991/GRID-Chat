@@ -4,21 +4,29 @@
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
     
-    <title>{% block title %}GRID-Chat | Conexión en Tiempo Real{% endblock %}</title>
-    <meta name="description" content="GRID-Chat: La plataforma de comunicación geolocalizada más rápida y segura. Conéctate con tu comunidad en tiempo real.">
-    <meta name="keywords" content="chat, grid-chat, tiempo real, socketio, flask, comunidad, mensajería">
+    <title>{% block title %}GRID-Chat | Conexión Global{% endblock %}</title>
+    <meta name="description" content="GRID-Chat: La plataforma de comunicación geolocalizada más rápida y segura.">
+    <meta name="keywords" content="chat, grid-chat, dark mode, socketio, flask">
     <meta name="author" content="David Vidal Ramirez">
     <meta name="robots" content="index, follow">
+    <meta name="language" content="Spanish">
+    <meta name="revisit-after" content="7 days">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="theme-color" content="#121212">
+    <meta property="og:site_name" content="GRID-Chat">
+    <meta property="og:locale" content="es_ES">
+    <meta property="og:type" content="website">
 
     <meta property="og:title" content="GRID-Chat - Mensajería Global">
     <meta property="og:description" content="Únete a las salas de chat geolocalizadas de GRID-Chat.">
     <meta property="og:image" content="{{ url_for('static', filename='img/logo-web-app-manifest-512x512.png') }}">
     <meta property="og:url" content="https://grid-chat-lknf.onrender.com">
     <meta property="og:type" content="website">
+    <meta property="og:site_name" content="GRID-Chat">
+    <meta property="og:locale" content="es_ES">
 
     <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#2c3e50">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/logo.ico') }}">
+    <meta name="theme-color" content="#121212"> <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/logo.ico') }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.ico') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-logo.png') }}">
 
@@ -37,9 +45,8 @@
 </head>
 <body>
     <header>
-        <div style="display:flex; align-items:center; justify-content:center; gap:10px;">
-            <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="GRID-Chat Logo" style="height: 40px; width: auto;">
-            <h1>GRID-Chat</h1>
+        <div class="logo-container">
+            <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="GRID-Chat Logo" class="main-logo">
         </div>
         <nav>
             <a href='{{ url_for('index') }}'>Inicio</a>
