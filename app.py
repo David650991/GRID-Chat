@@ -3,6 +3,7 @@ from flask_socketio import SocketIO, join_room, leave_room, send, emit
 import db_manager
 from datetime import datetime
 import os
+import random
 
 app = Flask(__name__)
 # IMPORTANTE: Esta clave cifra las cookies. En producción debe ser muy compleja.
@@ -130,25 +131,6 @@ def manifest():
 
 # --- SOCKET.IO ---
 
-def generar_nick_unico(room, base_nick):
-    # Obtener nicks actuales en la sala
-    nicks_en_sala = [u['nick'] for u in USUARIOS_ACTIVOS.values() if u['sala'] == room]
-    
-    # Proteger el nick de Administrador
-    if base_nick.lower() == "administrador":
-        # Si intenta ser admin pero no tiene la sesión de admin, le cambiamos el nombre
-        # Accedemos a la sesión dentro del contexto de socketio (request context)
-        # Nota: Flask-SocketIO maneja contextos, pero session puede ser tricky. 
-        # Simplificamos: Si el nick base es Admin y ya hay uno, o no es admin real...
-        pass 
-
-    nuevo_nick = base_nick
-    contador = 1
-    while nuevo_nick in nicks_en_sala:
-        nuevo_nick = f"{base_nick}_{contador}"
-        contador += 1
-    return nuevo_nick
-
 @socketio.on('reaccionar')
 def handle_reaction(data):
     msg_id = data['id']
@@ -173,24 +155,31 @@ def on_join(data):
     room = data['room']
     sid = request.sid
     
-    # 1. Lógica de Nick Único
-    username_final = generar_nick_unico(room, username_solicitado)
+    # Obtener lista de usuarios actuales en la sala
+    nicks_en_sala = [u['nick'] for u in USUARIOS_ACTIVOS.values() if u['sala'] == room]
     
-    # Si intentan usar "Administrador" sin permiso, forzamos cambio (opcional, aqui solo evitamos duplicados)
-    # Pero si ya existe un "Administrador", el generar_nick_unico lo volverá "Administrador_1"
-    
+    # --- LOGICA DE NOMBRE REPETIDO (RECHAZO) ---
+    if username_solicitado in nicks_en_sala:
+        # Si el nombre ya existe, NO unimos al usuario.
+        # Calculamos una sugerencia
+        sugerencia = f"{username_solicitado}_{random.randint(1, 99)}"
+        # Emitimos un evento de error solo a este socket
+        emit('error_username', {
+            'mensaje': f"El nombre '{username_solicitado}' ya está en uso.",
+            'sugerencia': sugerencia
+        }, to=sid)
+        return # DETENEMOS LA EJECUCIÓN AQUÍ. No entra a la sala.
+
+    # Si pasa la validación, entra normal
     join_room(room)
     
     # Guardamos el nick final
-    USUARIOS_ACTIVOS[sid] = {'nick': username_final, 'sala': room}
-    
-    # Avisamos al usuario su nombre final (por si cambió)
-    emit('set_username', {'username': username_final}, to=sid)
+    USUARIOS_ACTIVOS[sid] = {'nick': username_solicitado, 'sala': room}
     
     historial = db_manager.obtener_historial(room)
     emit('historial_previo', historial, to=sid)
     
-    send(f'{username_final} ha entrado a la sala.', to=room)
+    send(f'{username_solicitado} ha entrado a la sala.', to=room)
     emitir_lista_usuarios(room)
 
 @socketio.on('typing')
@@ -215,13 +204,13 @@ def on_disconnect():
 def handle_message(data):
     room = data['room']
     msg = data['msg']
-    # Usamos el username que nos manda el cliente (que ya debe estar actualizado)
-    # O mejor, usamos el de la sesión activa para evitar hackeos de identidad
+    # Usamos el username seguro de la sesión del socket
     sid = request.sid
     if sid in USUARIOS_ACTIVOS:
         username = USUARIOS_ACTIVOS[sid]['nick']
     else:
-        username = data['username'] # Fallback
+        # Fallback por si acaso, aunque no debería pasar si entró bien
+        username = data['username']
     
     msg_id = db_manager.guardar_mensaje(room, username, msg)
     hora_actual = datetime.now().strftime('%H:%M')

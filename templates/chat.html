@@ -75,18 +75,17 @@
 <script>
     const socket = io();
     const room = '{{ sala_id }}';
-    // Variable mutable porque el servidor puede cambiarnos el nombre si está repetido
     let myUsername = '{{ nickname }}'; 
     const isAdmin = {{ 'true' if es_admin else 'false' }};
 
+    // Intentamos unirnos
     socket.emit('join', { username: myUsername, room: room });
 
-    // --- ESCUCHAR ASIGNACIÓN DE NICKNAME FINAL ---
-    socket.on('set_username', function(data) {
-        if(data.username !== myUsername) {
-            console.log("Nombre actualizado por el servidor:", data.username);
-            myUsername = data.username;
-        }
+    // --- MANEJO DE ERROR DE NOMBRE DUPLICADO ---
+    socket.on('error_username', function(data) {
+        alert("⚠️ " + data.mensaje + "\n\nSugerencia: " + data.sugerencia + "\n\nPor favor, elige otro nombre.");
+        // Redirigir al inicio para que elija otro nombre
+        window.location.href = '/';
     });
 
     socket.on('update_users', function(listaUsuarios) {
@@ -100,12 +99,13 @@
         listaUsuarios.forEach(user => {
             const li = document.createElement('li');
             
+            // Creamos elementos
+            const dot = document.createElement('div');
+            dot.className = 'status-dot';
+            
             const img = document.createElement('img');
             img.src = getAvatar(user);
             
-            const dot = document.createElement('div');
-            dot.className = 'status-dot';
-
             const span = document.createElement('span');
             span.innerText = user;
             
@@ -113,11 +113,12 @@
                 span.style.fontWeight = 'bold';
                 span.innerText += ' (Tú)';
                 span.style.color = '#fff';
-                // CORRECCIÓN VISIBILIDAD: Fondo verde oscuro translúcido, texto blanco
+                // Resaltar usuario propio
                 li.style.backgroundColor = 'rgba(0, 230, 118, 0.15)'; 
                 li.style.borderLeft = '3px solid #00e676';
             }
 
+            // Orden correcto: Punto -> Foto -> Nombre
             li.appendChild(dot);
             li.appendChild(img);
             li.appendChild(span);
@@ -217,7 +218,7 @@
         for (const [emoji, count] of Object.entries(reaccionesDict)) {
             if (count > 0) {
                 // Estilo mejorado para contadores
-                countsHtml += `<span class="reaction-count">${emoji} <small>${count}</small></span>`;
+                countsHtml += `<span class="reaction-count">${emoji} <small style="margin-left:4px;">${count}</small></span>`;
             }
         }
         return `<div class="reaction-bar" id="react-bar-${msgId}">${countsHtml}${buttonsHtml}</div>`;
