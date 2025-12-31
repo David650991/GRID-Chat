@@ -1,7 +1,8 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, make_response
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 import db_manager
 from datetime import datetime
+import os
 
 app = Flask(__name__)
 # IMPORTANTE: Esta clave cifra las cookies. En producción debe ser muy compleja.
@@ -109,9 +110,26 @@ def add_phrase():
 
     return redirect(url_for('frases_index'))
 
+# --- RUTAS PWA (Mejorado con compatibilidad dual) ---
+# Servimos desde raíz para instalación PWA, pero mantenemos ruta estática para compatibilidad
+
+@app.route('/sw.js')
+def service_worker():
+    response = make_response(send_from_directory('static', 'sw.js'))
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Cache-Control'] = 'no-cache' 
+    return response
+
 @app.route('/static/sw.js')
-def sw():
-    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+def static_service_worker():
+    """Ruta alternativa para compatibilidad"""
+    return service_worker()
+
+@app.route('/manifest.json')
+def manifest():
+    response = make_response(send_from_directory('static', 'manifest.json'))
+    response.headers['Content-Type'] = 'application/manifest+json'
+    return response
 
 # --- SOCKET.IO ---
 
@@ -189,20 +207,17 @@ def emitir_lista_usuarios(sala_id):
     lista_unica = list(set(lista))
     socketio.emit('update_users', lista_unica, to=sala_id)
 
-# --- SEO Y SEGURIDAD (GRID-Chat) ---
+# --- SEO Y SEGURIDAD ---
 
 @app.route('/robots.txt')
 def robots():
-    # URL REAL ACTUALIZADA
     base_url = "https://grid-chat-lknf.onrender.com" 
     content = f"User-agent: *\nAllow: /\nSitemap: {base_url}/sitemap.xml"
     return content, 200, {'Content-Type': 'text/plain'}
 
 @app.route('/sitemap.xml')
 def sitemap():
-    # URL REAL ACTUALIZADA
     base_url = "https://grid-chat-lknf.onrender.com"
-    
     xml = f'''<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
         <url>
@@ -225,6 +240,9 @@ def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    # Cabecera adicional para Service Worker
+    if response.headers.get('Content-Type') == 'application/javascript':
+        response.headers['Service-Worker-Allowed'] = '/'
     return response
 
 if __name__ == '__main__':

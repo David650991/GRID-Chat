@@ -97,7 +97,7 @@
 - Integración con GitLab mediante API.
 - Integración con Trello mediante API.
 
-chat_platform/
+GRID-Chat/
 │
 ├── app.py
 ├── config.py
