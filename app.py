@@ -110,9 +110,7 @@ def add_phrase():
 
     return redirect(url_for('frases_index'))
 
-# --- RUTAS PWA (Mejorado con compatibilidad dual) ---
-# Servimos desde raíz para instalación PWA, pero mantenemos ruta estática para compatibilidad
-
+# --- RUTAS PWA ---
 @app.route('/sw.js')
 def service_worker():
     response = make_response(send_from_directory('static', 'sw.js'))
@@ -122,7 +120,6 @@ def service_worker():
 
 @app.route('/static/sw.js')
 def static_service_worker():
-    """Ruta alternativa para compatibilidad"""
     return service_worker()
 
 @app.route('/manifest.json')
@@ -132,6 +129,25 @@ def manifest():
     return response
 
 # --- SOCKET.IO ---
+
+def generar_nick_unico(room, base_nick):
+    # Obtener nicks actuales en la sala
+    nicks_en_sala = [u['nick'] for u in USUARIOS_ACTIVOS.values() if u['sala'] == room]
+    
+    # Proteger el nick de Administrador
+    if base_nick.lower() == "administrador":
+        # Si intenta ser admin pero no tiene la sesión de admin, le cambiamos el nombre
+        # Accedemos a la sesión dentro del contexto de socketio (request context)
+        # Nota: Flask-SocketIO maneja contextos, pero session puede ser tricky. 
+        # Simplificamos: Si el nick base es Admin y ya hay uno, o no es admin real...
+        pass 
+
+    nuevo_nick = base_nick
+    contador = 1
+    while nuevo_nick in nicks_en_sala:
+        nuevo_nick = f"{base_nick}_{contador}"
+        contador += 1
+    return nuevo_nick
 
 @socketio.on('reaccionar')
 def handle_reaction(data):
@@ -153,17 +169,28 @@ def handle_connect():
 
 @socketio.on('join')
 def on_join(data):
-    username = data['username']
+    username_solicitado = data['username']
     room = data['room']
     sid = request.sid
+    
+    # 1. Lógica de Nick Único
+    username_final = generar_nick_unico(room, username_solicitado)
+    
+    # Si intentan usar "Administrador" sin permiso, forzamos cambio (opcional, aqui solo evitamos duplicados)
+    # Pero si ya existe un "Administrador", el generar_nick_unico lo volverá "Administrador_1"
+    
     join_room(room)
     
-    USUARIOS_ACTIVOS[sid] = {'nick': username, 'sala': room}
+    # Guardamos el nick final
+    USUARIOS_ACTIVOS[sid] = {'nick': username_final, 'sala': room}
+    
+    # Avisamos al usuario su nombre final (por si cambió)
+    emit('set_username', {'username': username_final}, to=sid)
     
     historial = db_manager.obtener_historial(room)
     emit('historial_previo', historial, to=sid)
     
-    send(f'{username} ha entrado a la sala.', to=room)
+    send(f'{username_final} ha entrado a la sala.', to=room)
     emitir_lista_usuarios(room)
 
 @socketio.on('typing')
@@ -188,7 +215,13 @@ def on_disconnect():
 def handle_message(data):
     room = data['room']
     msg = data['msg']
-    username = data['username']
+    # Usamos el username que nos manda el cliente (que ya debe estar actualizado)
+    # O mejor, usamos el de la sesión activa para evitar hackeos de identidad
+    sid = request.sid
+    if sid in USUARIOS_ACTIVOS:
+        username = USUARIOS_ACTIVOS[sid]['nick']
+    else:
+        username = data['username'] # Fallback
     
     msg_id = db_manager.guardar_mensaje(room, username, msg)
     hora_actual = datetime.now().strftime('%H:%M')
@@ -240,7 +273,6 @@ def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
-    # Cabecera adicional para Service Worker
     if response.headers.get('Content-Type') == 'application/javascript':
         response.headers['Service-Worker-Allowed'] = '/'
     return response

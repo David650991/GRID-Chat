@@ -11,7 +11,7 @@
                 {% if es_admin %}
                     <span style="background: #e74c3c; padding: 2px 6px; border-radius: 4px; font-size: 0.7em;">MODO ADMIN</span>
                 {% endif %}
-                <small style="font-size: 0.8em; opacity: 0.9; display:block;">📍 {{ info_sala.geo }}</small>
+                <small style="font-size: 0.8em; opacity: 0.7; display:block; color: #00e676;">📍 {{ info_sala.geo }}</small>
             </div>
         </div>
         <a href='{{ url_for('index') }}' class='btn-salir'>Salir</a>
@@ -34,42 +34,21 @@
 
         <div class="users-sidebar">
             <div class="users-header">👥 En línea</div>
-            <ul id="users-list">
-                </ul>
+            <ul id="users-list"></ul>
         </div>
     </div>
 </div>
 
-<style>
-    /* Estilos para estado ONLINE */
-    .status-dot {
-        height: 10px;
-        width: 10px;
-        background-color: #2ecc71;
-        border-radius: 50%;
-        display: inline-block;
-        margin-right: 8px;
-        box-shadow: 0 0 5px #2ecc71;
-    }
-    #users-list li {
-        padding: 10px;
-        border-bottom: 1px solid #eee;
-        transition: background 0.2s;
-    }
-    #users-list li:hover {
-        background-color: #f9f9f9;
-    }
-</style>
-
 <script type="module">
     import { createPopup } from 'https://unpkg.com/@picmo/popup-picker@latest/dist/index.js?module';
-
     document.addEventListener('DOMContentLoaded', () => {
         const trigger = document.querySelector('#emoji-trigger');
         const input = document.querySelector('#message_input');
 
         try {
-            const picker = createPopup({}, {
+            const picker = createPopup({
+                theme: 'dark' // Tema oscuro para que combine
+            }, {
                 referenceElement: trigger,
                 triggerElement: trigger,
                 position: 'top-start'
@@ -85,7 +64,6 @@
                 const text = input.value;
                 input.value = text.substring(0, start) + selection.emoji + text.substring(end);
                 input.focus();
-                // Mover cursor después del emoji
                 input.selectionStart = input.selectionEnd = start + selection.emoji.length;
             });
         } catch (error) {
@@ -95,50 +73,49 @@
 </script>
 
 <script>
-    // --- LÓGICA PRINCIPAL DEL CHAT (SOCKET.IO) ---
     const socket = io();
     const room = '{{ sala_id }}';
-    const myUsername = '{{ nickname }}';
+    // Variable mutable porque el servidor puede cambiarnos el nombre si está repetido
+    let myUsername = '{{ nickname }}'; 
     const isAdmin = {{ 'true' if es_admin else 'false' }};
 
-    // 1. Unirse a la sala inmediatamente
     socket.emit('join', { username: myUsername, room: room });
 
-    // 2. Manejo de USUARIOS CONECTADOS
+    // --- ESCUCHAR ASIGNACIÓN DE NICKNAME FINAL ---
+    socket.on('set_username', function(data) {
+        if(data.username !== myUsername) {
+            console.log("Nombre actualizado por el servidor:", data.username);
+            myUsername = data.username;
+        }
+    });
+
     socket.on('update_users', function(listaUsuarios) {
         const listElement = document.getElementById('users-list');
-        listElement.innerHTML = ''; // Limpiar lista
+        listElement.innerHTML = ''; 
         
         if (listaUsuarios.length === 0) {
-            listElement.innerHTML = '<li style="color:#999; text-align:center;">Nadie más aquí...</li>';
+            listElement.innerHTML = '<li style="color:#666; text-align:center; padding:10px;">Esperando usuarios...</li>';
         }
 
         listaUsuarios.forEach(user => {
             const li = document.createElement('li');
-            li.style.display = 'flex';
-            li.style.alignItems = 'center';
-
-            // Avatar pequeño
+            
             const img = document.createElement('img');
             img.src = getAvatar(user);
-            img.style.width = '32px';
-            img.style.height = '32px';
-            img.style.borderRadius = '50%';
-            img.style.marginRight = '10px';
-            img.style.border = '1px solid #ddd';
-
-            // Punto verde de estado
+            
             const dot = document.createElement('div');
             dot.className = 'status-dot';
 
-            // Nombre
             const span = document.createElement('span');
             span.innerText = user;
             
             if (user === myUsername) {
                 span.style.fontWeight = 'bold';
                 span.innerText += ' (Tú)';
-                li.style.backgroundColor = '#e8f6f3'; // Resaltar mi usuario
+                span.style.color = '#fff';
+                // CORRECCIÓN VISIBILIDAD: Fondo verde oscuro translúcido, texto blanco
+                li.style.backgroundColor = 'rgba(0, 230, 118, 0.15)'; 
+                li.style.borderLeft = '3px solid #00e676';
             }
 
             li.appendChild(dot);
@@ -148,11 +125,9 @@
         });
     });
 
-    // 3. Manejo de Mensajes
     function appendMessage(data, isSystem = false) {
         const chatWindow = document.getElementById('chat-window');
         const div = document.createElement('div');
-        
         if (data.id) div.id = 'msg-' + data.id;
 
         if (isSystem) {
@@ -163,12 +138,11 @@
             div.className = isMe ? 'mensaje mensaje-mio' : 'mensaje mensaje-otro';
             
             let htmlContent = '';
-            
             if (!isMe) {
                 htmlContent += `
                     <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                        <img src="${getAvatar(data.username)}" style="width: 25px; height: 25px; border-radius: 50%; margin-right: 5px; border: 1px solid #ccc;">
-                        <span class="usuario-label" style="margin:0;">${data.username}</span>
+                        <img src="${getAvatar(data.username)}" style="width: 20px; height: 20px; border-radius: 50%; margin-right: 5px;">
+                        <span class="usuario-label">${data.username}</span>
                     </div>
                 `;
                 playNotification();
@@ -184,14 +158,12 @@
             if (isAdmin && data.id) {
                 htmlContent += ` <span class="btn-borrar" onclick="deleteMessage(${data.id})" title="Eliminar">🗑️</span>`;
             }
-            
             div.innerHTML = htmlContent;
         }
         chatWindow.appendChild(div);
         chatWindow.scrollTop = chatWindow.scrollHeight;
     }
 
-    // Funciones Auxiliares
     function getAvatar(username) {
         const safeUser = encodeURIComponent(username);
         return `https://api.dicebear.com/7.x/avataaars/svg?seed=${safeUser}&backgroundColor=b6e3f4`;
@@ -199,7 +171,7 @@
 
     const notifSound = new Audio('https://cdn.freesound.org/previews/536/536108_10813958-lq.mp3');
     function playNotification() {
-        notifSound.play().catch(e => console.log("Audio bloqueado por navegador"));
+        notifSound.play().catch(e => {});
     }
 
     function formatMessage(text) {
@@ -216,7 +188,6 @@
         });
     }
 
-    // --- ESCRIBIENDO... ---
     let typingTimer;
     const inputField = document.getElementById('message_input');
     const typingDiv = document.getElementById('typing-indicator');
@@ -234,10 +205,9 @@
         }, 1000);
     });
 
-    // --- REACCIONES ---
     const reactionOptions = ['❤️', '😂', '😮', '😢', '👍'];
     function generarHTMLReacciones(msgId, reaccionesDict) {
-        let buttonsHtml = '<div class="reaction-buttons" style="margin-right:10px;">';
+        let buttonsHtml = '<div class="reaction-buttons">';
         reactionOptions.forEach(emoji => {
             buttonsHtml += `<button class="reaction-btn" onclick="enviarReaccion(${msgId}, '${emoji}')">${emoji}</button>`;
         });
@@ -246,7 +216,8 @@
         let countsHtml = '';
         for (const [emoji, count] of Object.entries(reaccionesDict)) {
             if (count > 0) {
-                countsHtml += `<span class="reaction-count">${emoji} ${count}</span>`;
+                // Estilo mejorado para contadores
+                countsHtml += `<span class="reaction-count">${emoji} <small>${count}</small></span>`;
             }
         }
         return `<div class="reaction-bar" id="react-bar-${msgId}">${countsHtml}${buttonsHtml}</div>`;
@@ -262,7 +233,6 @@
         if (bar) bar.outerHTML = generarHTMLReacciones(data.id, data.reacciones);
     });
 
-    // --- EVENTOS SOCKET ---
     socket.on('message', function(data) {
         appendMessage(data, typeof data === 'string');
     });
@@ -271,14 +241,13 @@
         historial.forEach(item => appendMessage(item, false));
         const div = document.createElement('div');
         div.style.textAlign = 'center';
-        div.style.color = '#888';
-        div.style.margin = '10px 0';
+        div.style.color = '#666';
+        div.style.margin = '15px 0';
         div.style.fontSize = '0.8em';
         div.innerText = '--- Historial Reciente ---';
         document.getElementById('chat-window').appendChild(div);
     });
     
-    // --- ENVIO ---
     function sendMessage() {
         const text = inputField.value.trim();
         if (text) {
@@ -292,7 +261,6 @@
         if (e.key === 'Enter') sendMessage();
     });
 
-    // Borrado (Admin)
     window.deleteMessage = function(id) {
         if (confirm('¿Borrar mensaje?')) socket.emit('borrar_mensaje', { id: id, room: room });
     };
@@ -303,6 +271,5 @@
             setTimeout(() => msgDiv.remove(), 500);
         }
     });
-
 </script>
 {% endblock %}

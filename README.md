@@ -1,4 +1,4 @@
-# 🗨️ Chat Tres Valles - Sistema de Comunicación en Tiempo Real
+# 🗨️ GRID-Chat | Conexión Global
 
 ![Python](https://img.shields.io/badge/Python-3.x-blue?style=for-the-badge&logo=python)
 ![Flask](https://img.shields.io/badge/Flask-2.x-lightgrey?style=for-the-badge&logo=flask)

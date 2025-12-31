@@ -1,5 +1,5 @@
 REPORTE DE AUDITORÍA DE CÓDIGO
-Fecha: 12/30/2025 19:04:08
+Fecha: 12/30/2025 19:34:42
 Directorio Raíz: C:\Users\david\OneDrive\Desktop\Documentacion\GRID-Chat
 ==============================================================================
 
@@ -18,12 +18,13 @@ instance/
 
 ################################################################################
 RUTA: C:\Users\david\OneDrive\Desktop\Documentacion\GRID-Chat\app.py
-TAMAÑO: 7032 bytes
+TAMAÑO: 7782 bytes
 ################################################################################
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, make_response
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 import db_manager
 from datetime import datetime
+import os
 
 app = Flask(__name__)
 # IMPORTANTE: Esta clave cifra las cookies. En producción debe ser muy compleja.
@@ -131,9 +132,26 @@ def add_phrase():
 
     return redirect(url_for('frases_index'))
 
+# --- RUTAS PWA (Mejorado con compatibilidad dual) ---
+# Servimos desde raíz para instalación PWA, pero mantenemos ruta estática para compatibilidad
+
+@app.route('/sw.js')
+def service_worker():
+    response = make_response(send_from_directory('static', 'sw.js'))
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Cache-Control'] = 'no-cache' 
+    return response
+
 @app.route('/static/sw.js')
-def sw():
-    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+def static_service_worker():
+    """Ruta alternativa para compatibilidad"""
+    return service_worker()
+
+@app.route('/manifest.json')
+def manifest():
+    response = make_response(send_from_directory('static', 'manifest.json'))
+    response.headers['Content-Type'] = 'application/manifest+json'
+    return response
 
 # --- SOCKET.IO ---
 
@@ -211,20 +229,17 @@ def emitir_lista_usuarios(sala_id):
     lista_unica = list(set(lista))
     socketio.emit('update_users', lista_unica, to=sala_id)
 
-# --- SEO Y SEGURIDAD (GRID-Chat) ---
+# --- SEO Y SEGURIDAD ---
 
 @app.route('/robots.txt')
 def robots():
-    # URL REAL ACTUALIZADA
     base_url = "https://grid-chat-lknf.onrender.com" 
     content = f"User-agent: *\nAllow: /\nSitemap: {base_url}/sitemap.xml"
     return content, 200, {'Content-Type': 'text/plain'}
 
 @app.route('/sitemap.xml')
 def sitemap():
-    # URL REAL ACTUALIZADA
     base_url = "https://grid-chat-lknf.onrender.com"
-    
     xml = f'''<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
         <url>
@@ -247,6 +262,9 @@ def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    # Cabecera adicional para Service Worker
+    if response.headers.get('Content-Type') == 'application/javascript':
+        response.headers['Service-Worker-Allowed'] = '/'
     return response
 
 if __name__ == '__main__':
@@ -258,7 +276,7 @@ RUTA: C:\Users\david\OneDrive\Desktop\Documentacion\GRID-Chat\auditoria_completa
 TAMAÑO: 218 bytes
 ################################################################################
 REPORTE DE AUDITORÍA DE CÓDIGO
-Fecha: 12/30/2025 19:04:08
+Fecha: 12/30/2025 19:34:42
 Directorio Raíz: C:\Users\david\OneDrive\Desktop\Documentacion\GRID-Chat
 ==============================================================================
 
@@ -277,12 +295,13 @@ instance/
 
 ################################################################################
 RUTA: C:\Users\david\OneDrive\Desktop\Documentacion\GRID-Chat\app.py
-TAMAÑO: 7032 bytes
+TAMAÑO: 7782 bytes
 ################################################################################
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, make_response
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 import db_manager
 from datetime import datetime
+import os
 
 app = Flask(__name__)
 # IMPORTANTE: Esta clave cifra las cookies. En producción debe ser muy compleja.
@@ -390,9 +409,26 @@ def add_phrase():
 
     return redirect(url_for('frases_index'))
 
+# --- RUTAS PWA (Mejorado con compatibilidad dual) ---
+# Servimos desde raíz para instalación PWA, pero mantenemos ruta estática para compatibilidad
+
+@app.route('/sw.js')
+def service_worker():
+    response = make_response(send_from_directory('static', 'sw.js'))
+    response.headers['Content-Type'] = 'application/javascript'
+    response.headers['Cache-Control'] = 'no-cache' 
+    return response
+
 @app.route('/static/sw.js')
-def sw():
-    return send_from_directory('static', 'sw.js', mimetype='application/javascript')
+def static_service_worker():
+    """Ruta alternativa para compatibilidad"""
+    return service_worker()
+
+@app.route('/manifest.json')
+def manifest():
+    response = make_response(send_from_directory('static', 'manifest.json'))
+    response.headers['Content-Type'] = 'application/manifest+json'
+    return response
 
 # --- SOCKET.IO ---
 
@@ -470,20 +506,17 @@ def emitir_lista_usuarios(sala_id):
     lista_unica = list(set(lista))
     socketio.emit('update_users', lista_unica, to=sala_id)
 
-# --- SEO Y SEGURIDAD (GRID-Chat) ---
+# --- SEO Y SEGURIDAD ---
 
 @app.route('/robots.txt')
 def robots():
-    # URL REAL ACTUALIZADA
     base_url = "https://grid-chat-lknf.onrender.com" 
     content = f"User-agent: *\nAllow: /\nSitemap: {base_url}/sitemap.xml"
     return content, 200, {'Content-Type': 'text/plain'}
 
 @app.route('/sitemap.xml')
 def sitemap():
-    # URL REAL ACTUALIZADA
     base_url = "https://grid-chat-lknf.onrender.com"
-    
     xml = f'''<?xml version="1.0" encoding="UTF-8"?>
     <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
         <url>
@@ -506,6 +539,9 @@ def add_security_headers(response):
     response.headers['X-Content-Type-Options'] = 'nosniff'
     response.headers['X-Frame-Options'] = 'SAMEORIGIN'
     response.headers['X-XSS-Protection'] = '1; mode=block'
+    # Cabecera adicional para Service Worker
+    if response.headers.get('Content-Type') == 'application/javascript':
+        response.headers['Service-Worker-Allowed'] = '/'
     return response
 
 if __name__ == '__main__':
@@ -1523,7 +1559,7 @@ TAMAÑO: 250370 bytes
 
 ################################################################################
 RUTA: C:\Users\david\OneDrive\Desktop\Documentacion\GRID-Chat\templates\base.html
-TAMAÑO: 3384 bytes
+TAMAÑO: 4653 bytes
 ################################################################################
 <!DOCTYPE html>
 <html lang='es'>
@@ -1532,18 +1568,16 @@ TAMAÑO: 3384 bytes
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
     
     <title>{% block title %}GRID-Chat | Conexión Global{% endblock %}</title>
+    
+    <!-- SEO Meta Tags -->
     <meta name="description" content="GRID-Chat: La plataforma de comunicación geolocalizada más rápida y segura.">
     <meta name="keywords" content="chat, grid-chat, dark mode, socketio, flask">
     <meta name="author" content="David Vidal Ramirez">
     <meta name="robots" content="index, follow">
     <meta name="language" content="Spanish">
     <meta name="revisit-after" content="7 days">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <meta name="theme-color" content="#121212">
-    <meta property="og:site_name" content="GRID-Chat">
-    <meta property="og:locale" content="es_ES">
-    <meta property="og:type" content="website">
-
+    
+    <!-- Open Graph / Facebook -->
     <meta property="og:title" content="GRID-Chat - Mensajería Global">
     <meta property="og:description" content="Únete a las salas de chat geolocalizadas de GRID-Chat.">
     <meta property="og:image" content="{{ url_for('static', filename='img/logo-web-app-manifest-512x512.png') }}">
@@ -1551,21 +1585,39 @@ TAMAÑO: 3384 bytes
     <meta property="og:type" content="website">
     <meta property="og:site_name" content="GRID-Chat">
     <meta property="og:locale" content="es_ES">
-
-    <link rel="manifest" href="{{ url_for('static', filename='manifest.json') }}">
-    <meta name="theme-color" content="#121212"> <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/logo.ico') }}">
+    
+    <!-- PWA Configuration -->
+    <link rel="manifest" href="/manifest.json">
+    <meta name="theme-color" content="#121212">
+    
+    <!-- Favicons -->
+    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='img/logo-web-app-manifest-192x192.png') }}">
+    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/logo.ico') }}">
     <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.ico') }}">
     <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-logo.png') }}">
-
+    
+    <!-- Styles and Libraries -->
     <link rel='stylesheet' href='{{ url_for('static', filename='css/style.css') }}'>
     <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js'></script>
-
+    
+    <!-- Service Worker Registration -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/static/sw.js')
-                    .then(registration => console.log('GRID-Chat SW registrado:', registration.scope))
-                    .catch(err => console.log('Fallo SW:', err));
+                // Intentamos registrar desde la raíz primero (para PWA)
+                navigator.serviceWorker.register('/sw.js')
+                    .then(registration => {
+                        console.log('GRID-Chat PWA Lista:', registration.scope);
+                    })
+                    .catch(error => {
+                        console.log('Falló registro raíz, intentando ruta estática:', error);
+                        // Fallback a ruta estática si falla la raíz
+                        navigator.serviceWorker.register('/static/sw.js')
+                            .then(registration => {
+                                console.log('GRID-Chat SW registrado (fallback):', registration.scope);
+                            })
+                            .catch(err => console.log('Fallo total del Service Worker:', err));
+                    });
             });
         }
     </script>
@@ -1578,6 +1630,9 @@ TAMAÑO: 3384 bytes
         <nav>
             <a href='{{ url_for('index') }}'>Inicio</a>
             <a href='{{ url_for('frases_index') }}'>📚 Frases</a>
+            {% if es_admin %}
+                <a href='{{ url_for('logout') }}' style="color: #ff6b6b;">Salir (Admin)</a>
+            {% endif %}
         </nav>
     </header>
     
@@ -1589,6 +1644,16 @@ TAMAÑO: 3384 bytes
         </aside>
 
         <main class="app-content">
+            {% with messages = get_flashed_messages() %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for message in messages %}
+                            <div class="flash-message">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            
             {% block content %}{% endblock %}
         </main>
 
@@ -1602,6 +1667,8 @@ TAMAÑO: 3384 bytes
     <footer>
         <p>GRID-Chat © 2025 - Desarrollado por David Vidal Ramirez</p>
     </footer>
+    
+    {% block scripts %}{% endblock %}
 </body>
 </html>
 

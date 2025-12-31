@@ -1,15 +1,15 @@
 :root {
-  --bg-color: #121212; /* Fondo Principal (Muy oscuro) */
-  --surface-color: #1e1e1e; /* Fondo de Tarjetas/Chat */
-  --header-color: #252526; /* Fondo Header */
-  --primary-color: #00e676; /* Verde Neón para acentos (Llamativo) */
-  --secondary-color: #00c853; /* Verde más oscuro */
-  --text-primary: #e0e0e0; /* Texto claro (no blanco puro) */
-  --text-secondary: #b0b0b0; /* Texto secundario */
-  --border-color: #333333; /* Bordes sutiles */
-  --input-bg: #2c2c2c; /* Fondo de inputs */
-  --msg-me: #054d44; /* Fondo mensaje mio (Verde oscuro WhatsApp) */
-  --msg-other: #2c2c2c; /* Fondo mensaje otro (Gris oscuro) */
+  --bg-color: #121212;
+  --surface-color: #1e1e1e;
+  --header-color: #252526;
+  --primary-color: #00e676; /* Verde Neon */
+  --secondary-color: #00c853;
+  --text-primary: #e0e0e0;
+  --text-secondary: #b0b0b0;
+  --border-color: #333333;
+  --input-bg: #2c2c2c;
+  --msg-me: #054d44;
+  --msg-other: #2c2c2c;
 }
 
 body {
@@ -29,15 +29,13 @@ header {
   box-shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
 }
 
-/* LOGO MÁS LLAMATIVO */
 .main-logo {
-  height: 80px; /* Doble de tamaño que antes */
+  height: 80px;
   width: auto;
   display: block;
-  filter: drop-shadow(0 0 5px rgba(0, 230, 118, 0.4)); /* Brillo sutil */
+  filter: drop-shadow(0 0 5px rgba(0, 230, 118, 0.4));
   transition: transform 0.3s ease;
 }
-
 .main-logo:hover {
   transform: scale(1.05);
 }
@@ -45,7 +43,6 @@ header {
 nav {
   margin-top: 15px;
 }
-
 nav a {
   color: var(--text-primary);
   margin: 0 15px;
@@ -56,7 +53,6 @@ nav a {
   letter-spacing: 1px;
   transition: color 0.3s;
 }
-
 nav a:hover {
   color: var(--primary-color);
 }
@@ -67,13 +63,12 @@ nav a:hover {
   padding: 20px;
 }
 
-/* TARJETAS DE SALAS (DARK) */
+/* CARDS */
 .grid-salas {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(220px, 1fr));
   gap: 20px;
 }
-
 .card-sala {
   background: var(--surface-color);
   padding: 25px;
@@ -83,13 +78,11 @@ nav a:hover {
   border: 1px solid var(--border-color);
   transition: transform 0.2s, box-shadow 0.2s;
 }
-
 .card-sala:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 15px rgba(0, 230, 118, 0.1);
   border-color: var(--primary-color);
 }
-
 .card-sala h3 {
   color: var(--primary-color);
   margin-top: 0;
@@ -114,7 +107,7 @@ nav a:hover {
   opacity: 0.9;
 }
 
-/* LAYOUT PRINCIPAL */
+/* LAYOUT */
 .main-layout {
   display: flex;
   justify-content: center;
@@ -150,7 +143,7 @@ nav a:hover {
   border-radius: 8px;
 }
 
-/* CHAT CONTAINER DARK */
+/* CHAT UI */
 .chat-container {
   max-width: 1000px;
   margin: 0 auto;
@@ -172,7 +165,6 @@ nav a:hover {
   align-items: center;
   border-bottom: 1px solid var(--border-color);
 }
-
 .header-info {
   display: flex;
   align-items: center;
@@ -185,7 +177,6 @@ nav a:hover {
   border: 2px solid var(--primary-color);
   background: #fff;
 }
-
 .chat-layout {
   display: flex;
   flex: 1;
@@ -197,13 +188,10 @@ nav a:hover {
   flex-direction: column;
   min-width: 0;
 }
-
-/* VENTANA DE CHAT DARK */
 #chat-window {
   flex: 1;
   padding: 20px;
   overflow-y: auto;
-  /* Fondo oscuro con patrón sutil si se desea, por ahora solido */
   background-color: #0b0b0b;
   background-image: radial-gradient(#1f1f1f 1px, transparent 1px);
   background-size: 20px 20px;
@@ -211,7 +199,7 @@ nav a:hover {
   flex-direction: column;
 }
 
-/* SIDEBAR DARK */
+/* SIDEBAR */
 .users-sidebar {
   width: 220px;
   background: var(--surface-color);
@@ -249,13 +237,22 @@ nav a:hover {
   margin-right: 10px;
   border: 1px solid var(--border-color);
 }
+.status-dot {
+  height: 8px;
+  width: 8px;
+  background-color: #2ecc71;
+  border-radius: 50%;
+  display: inline-block;
+  margin-right: 8px;
+  box-shadow: 0 0 5px #2ecc71;
+}
 @media (max-width: 700px) {
   .users-sidebar {
     display: none;
   }
 }
 
-/* MENSAJES DARK */
+/* MENSAJES */
 .mensaje {
   padding: 10px 15px;
   border-radius: 12px;
@@ -300,7 +297,7 @@ nav a:hover {
   opacity: 0.6;
 }
 
-/* INPUT AREA DARK */
+/* INPUT */
 .chat-input {
   padding: 15px;
   background: var(--surface-color);
@@ -339,7 +336,6 @@ nav a:hover {
 .chat-input button:hover {
   transform: scale(1.1);
 }
-
 .btn-emoji {
   background: transparent !important;
   border: none !important;
@@ -354,37 +350,46 @@ nav a:hover {
   transform: scale(1.2);
 }
 
-/* REACCIONES DARK */
+/* REACCIONES ESTÉTICAS */
 .reaction-bar {
   display: flex;
-  gap: 5px;
-  margin-top: 5px;
+  gap: 8px;
+  margin-top: 8px;
   align-items: center;
   flex-wrap: wrap;
+}
+.reaction-buttons {
+  opacity: 0.3;
+  transition: opacity 0.3s;
+}
+.mensaje:hover .reaction-buttons {
+  opacity: 1;
 }
 .reaction-btn {
   background: transparent;
   border: none;
   cursor: pointer;
-  font-size: 1.1em;
-  padding: 2px;
-  opacity: 0.6;
+  font-size: 1.2em;
+  padding: 0 2px;
   transition: transform 0.2s;
 }
 .reaction-btn:hover {
-  opacity: 1;
-  transform: scale(1.3);
+  transform: scale(1.4);
 }
 .reaction-count {
-  background: rgba(255, 255, 255, 0.1);
-  border-radius: 10px;
+  background: #252526;
+  border-radius: 15px;
   padding: 2px 8px;
-  font-size: 0.75em;
+  font-size: 0.85em;
   border: 1px solid #444;
-  margin-right: 4px;
   display: flex;
   align-items: center;
-  color: #ddd;
+  color: #fff;
+  transition: all 0.2s;
+}
+.reaction-count:hover {
+  border-color: var(--primary-color);
+  box-shadow: 0 0 5px rgba(0, 230, 118, 0.3);
 }
 
 .typing-text {
@@ -423,7 +428,7 @@ nav a:hover {
 }
 .btn-salir {
   color: #fff;
-  background: #cf6679; /* Rojo suave dark mode */
+  background: #cf6679;
   padding: 6px 12px;
   border-radius: 4px;
   text-decoration: none;
@@ -434,7 +439,6 @@ nav a:hover {
   background: #b00020;
 }
 
-/* AJUSTES INPUTS LOGIN / CREAR SALA */
 input[type="text"],
 input[type="password"],
 select {
@@ -446,7 +450,6 @@ select {
 input::placeholder {
   color: #777;
 }
-
 footer {
   text-align: center;
   margin-top: 40px;
