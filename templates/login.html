@@ -1,28 +1,72 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class='container' style="max-width: 400px; margin-top: 50px;">
-    <div class="card-sala" style="text-align: left; background: #fff3cd; border: 1px solid #ffeeba;">
-        <h3 style="text-align: center; color: #856404;">🔐 Acceso Restringido</h3>
-        <p style="text-align: center; font-size: 0.9em;">Zona exclusiva para administradores del sitio.</p>
-        
-        {% with messages = get_flashed_messages() %}
+<div class="login-wrapper">
+    <div class="login-card">
+        <div class="login-header">
+            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=Grid" alt="Logo" class="login-logo">
+            {% if mode == 'register' %}
+                <h2>Crear Cuenta</h2>
+                <p>Únete a la mejor comunidad de chat</p>
+            {% elif mode == 'admin' %}
+                <h2>Admin Access</h2>
+                <p>Zona restringida</p>
+            {% else %}
+                <h2>Bienvenido</h2>
+                <p>Ingresa tus credenciales</p>
+            {% endif %}
+        </div>
+
+        {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div style="background: #f8d7da; color: #721c24; padding: 10px; border-radius: 5px; margin-bottom: 10px; text-align: center;">
-                    {{ messages[0] }}
+                <div class="flash-messages">
+                {% for category, message in messages %}
+                    <div class="flash-msg {{ category }}">{{ message }}</div>
+                {% endfor %}
                 </div>
             {% endif %}
         {% endwith %}
 
-        <form action="{{ url_for('admin_login') }}" method="POST">
-            <label>Contraseña Maestra:</label>
-            <input type="password" name="password" placeholder="••••••" style="width: 100%; padding: 10px; margin: 10px 0; border-radius: 5px; border: 1px solid #ccc;">
+        <form action="{{ request.path }}" method="POST" class="login-form">
             
-            <button type="submit" style="width: 100%; padding: 10px; background: #856404; color: white; border: none; border-radius: 5px; cursor: pointer;">Ingresar</button>
+            {% if mode == 'admin' %}
+                <div class="input-group">
+                    <span class="input-icon">🔒</span>
+                    <input type="password" name="password" required placeholder="Contraseña Maestra">
+                </div>
+                <input type="hidden" name="username" value="admin"> <!-- Dummy for compatibility if needed -->
+            {% else %}
+                <div class="input-group">
+                    <span class="input-icon">👤</span>
+                    <input type="text" name="username" required placeholder="Nombre de usuario" autocomplete="off">
+                </div>
+
+                {% if mode == 'register' %}
+                <div class="input-group">
+                    <span class="input-icon">📧</span>
+                    <input type="email" name="email" placeholder="Email (opcional)">
+                </div>
+                {% endif %}
+
+                <div class="input-group">
+                    <span class="input-icon">🔑</span>
+                    <input type="password" name="password" required placeholder="Contraseña">
+                </div>
+            {% endif %}
+
+            <button type="submit" class="btn-login">
+                {% if mode == 'register' %}REGISTRARSE{% else %}INGRESAR{% endif %}
+            </button>
         </form>
-        
-        <div style="text-align: center; margin-top: 15px;">
-            <a href="{{ url_for('index') }}" style="color: #666; font-size: 0.9em;">Volver al Inicio</a>
+
+        <div class="login-footer">
+            {% if mode == 'login' %}
+                <p>¿No tienes cuenta? <a href="{{ url_for('register') }}">Crear cuenta</a></p>
+            {% elif mode == 'register' %}
+                <p>¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Iniciar Sesión</a></p>
+            {% else %}
+                <a href="{{ url_for('index') }}">Volver al inicio</a>
+            {% endif %}
         </div>
     </div>
 </div>

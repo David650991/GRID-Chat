@@ -1,9 +1,10 @@
-from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, make_response
+from flask import Flask, render_template, request, redirect, url_for, session, flash, send_from_directory, make_response, jsonify
 from flask_socketio import SocketIO, join_room, leave_room, send, emit
 import db_manager
 from datetime import datetime
 import os
 import random
+from functools import wraps
 
 app = Flask(__name__)
 # IMPORTANTE: Esta clave cifra las cookies. En producción debe ser muy compleja.
@@ -15,41 +16,90 @@ db_manager.init_db()
 USUARIOS_ACTIVOS = {}
 ADMIN_PASSWORD = "12345"
 
+def login_required(f):
+    @wraps(f)
+    def decorated_function(*args, **kwargs):
+        if 'user_id' not in session:
+            return redirect(url_for('login'))
+        return f(*args, **kwargs)
+    return decorated_function
+
 # --- RUTAS DE NAVEGACIÓN ---
 
 @app.route('/')
 def index():
+    if 'user_id' not in session:
+        return redirect(url_for('login'))
+
     lista_salas = db_manager.obtener_salas()
     es_admin = session.get('es_admin', False)
-    nick_guardado = session.get('nick', '')
+    # Obtenemos datos frescos del usuario
+    user = db_manager.get_user_by_id(session['user_id'])
 
     return render_template('index.html',
                            salas=lista_salas,
                            es_admin=es_admin,
-                           nick_guardado=nick_guardado)
+                           user=user)
+
+# --- AUTENTICACIÓN ---
+
+@app.route('/login', methods=['GET', 'POST'])
+def login():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+
+        user = db_manager.verify_user(username, password)
+        if user:
+            session['user_id'] = user['id']
+            session['username'] = user['username']
+            session['avatar_url'] = user['avatar_url']
+            session['es_admin'] = (username == 'admin') # Simple admin check logic
+            return redirect(url_for('index'))
+        else:
+            flash('Usuario o contraseña incorrectos', 'error')
+
+    return render_template('login.html', mode='login')
+
+@app.route('/register', methods=['GET', 'POST'])
+def register():
+    if request.method == 'POST':
+        username = request.form.get('username')
+        password = request.form.get('password')
+        email = request.form.get('email')
+
+        if db_manager.create_user(username, password, email):
+            flash('Cuenta creada con éxito. Por favor inicia sesión.', 'success')
+            return redirect(url_for('login'))
+        else:
+            flash('El nombre de usuario ya existe.', 'error')
+
+    return render_template('login.html', mode='register')
+
+@app.route('/logout')
+def logout():
+    session.clear()
+    return redirect(url_for('login'))
+
+# --- ADMIN ---
 
 @app.route('/admin')
 def admin_page():
     if session.get('es_admin'):
         return redirect(url_for('index'))
-    return render_template('login.html')
+    return render_template('login.html', mode='admin') # Reusamos login.html
 
 @app.route('/login_admin', methods=['POST'])
 def admin_login():
     password = request.form.get('password')
     if password == ADMIN_PASSWORD:
         session['es_admin'] = True
-        session['nick'] = 'Administrador'
+        session['nick'] = 'Administrador' # Legacy support
         flash('¡Bienvenido, Jefe!')
         return redirect(url_for('index'))
     else:
         flash('Contraseña incorrecta')
         return redirect(url_for('admin_page'))
-
-@app.route('/logout')
-def logout():
-    session.clear()
-    return redirect(url_for('index'))
 
 @app.route('/crear_sala', methods=['POST'])
 def create_room():
@@ -66,23 +116,75 @@ def create_room():
     return redirect(url_for('index'))
 
 @app.route('/chat/<sala_id>')
+@login_required
 def chat(sala_id):
     info_sala = db_manager.obtener_sala_info(sala_id)
     if not info_sala:
         return redirect(url_for('index'))
 
-    nick_url = request.args.get('nick')
-    if nick_url:
-        session['nick'] = nick_url
-
-    nickname = session.get('nick', 'Anónimo')
+    user = db_manager.get_user_by_id(session['user_id'])
     es_admin = session.get('es_admin', False)
 
     return render_template('chat.html',
                            sala_id=sala_id,
                            info_sala=info_sala,
-                           nickname=nickname,
+                           user=user,
                            es_admin=es_admin)
+
+# --- API ENDPOINTS (AJAX) ---
+
+@app.route('/api/search_users')
+@login_required
+def search_users_api():
+    query = request.args.get('q', '')
+    if len(query) < 2: return jsonify([])
+    users = db_manager.search_users(query)
+    # Filtramos al propio usuario
+    users = [u for u in users if u['id'] != session['user_id']]
+    return jsonify(users)
+
+@app.route('/api/contacts')
+@login_required
+def get_contacts_api():
+    contacts = db_manager.get_contacts(session['user_id'])
+    return jsonify(contacts)
+
+@app.route('/api/add_contact', methods=['POST'])
+@login_required
+def add_contact_api():
+    data = request.json
+    target_id = data.get('user_id')
+    if db_manager.add_contact(session['user_id'], target_id):
+        return jsonify({'status': 'ok'})
+    return jsonify({'status': 'error'}), 400
+
+@app.route('/api/block_user', methods=['POST'])
+@login_required
+def block_user_api():
+    data = request.json
+    target_id = data.get('user_id')
+    if db_manager.block_user(session['user_id'], target_id):
+        return jsonify({'status': 'ok'})
+    return jsonify({'status': 'error'}), 400
+
+@app.route('/api/blocked_users')
+@login_required
+def get_blocked_users_api():
+    blocked = db_manager.get_blocked_users(session['user_id'])
+    return jsonify(blocked)
+
+@app.route('/api/update_profile', methods=['POST'])
+@login_required
+def update_profile_api():
+    data = request.json
+    email = data.get('email')
+    bio = data.get('bio')
+    avatar = data.get('avatar_url')
+
+    db_manager.update_user_profile(session['user_id'], email, bio, avatar)
+    return jsonify({'status': 'ok'})
+
+# --- FRASES (LEGACY) ---
 
 @app.route('/frases')
 def frases_index():
@@ -136,7 +238,7 @@ def handle_reaction(data):
     msg_id = data['id']
     emoji = data['emoji']
     room = data['room']
-    username = data['username']
+    username = session.get('username', 'Anónimo')
     
     nuevos_conteos = db_manager.toggle_reaccion(msg_id, username, emoji)
     
@@ -145,48 +247,35 @@ def handle_reaction(data):
         'reacciones': nuevos_conteos
     }, to=room)
 
-@socketio.on('connect')
-def handle_connect():
-    pass
-
 @socketio.on('join')
 def on_join(data):
-    username_solicitado = data['username']
     room = data['room']
     sid = request.sid
     
-    # Obtener lista de usuarios actuales en la sala
-    nicks_en_sala = [u['nick'] for u in USUARIOS_ACTIVOS.values() if u['sala'] == room]
-    
-    # --- LOGICA DE NOMBRE REPETIDO (RECHAZO) ---
-    if username_solicitado in nicks_en_sala:
-        # Si el nombre ya existe, NO unimos al usuario.
-        # Calculamos una sugerencia
-        sugerencia = f"{username_solicitado}_{random.randint(1, 99)}"
-        # Emitimos un evento de error solo a este socket
-        emit('error_username', {
-            'mensaje': f"El nombre '{username_solicitado}' ya está en uso.",
-            'sugerencia': sugerencia
-        }, to=sid)
-        return # DETENEMOS LA EJECUCIÓN AQUÍ. No entra a la sala.
+    # Validar sesión
+    if 'user_id' not in session:
+        emit('error_auth', {'mensaje': 'No autenticado'}, to=sid)
+        return
 
-    # Si pasa la validación, entra normal
+    username = session['username']
+    user_id = session['user_id']
+
     join_room(room)
     
-    # Guardamos el nick final
-    USUARIOS_ACTIVOS[sid] = {'nick': username_solicitado, 'sala': room}
+    USUARIOS_ACTIVOS[sid] = {'nick': username, 'sala': room, 'id': user_id}
     
     historial = db_manager.obtener_historial(room)
     emit('historial_previo', historial, to=sid)
     
-    send(f'{username_solicitado} ha entrado a la sala.', to=room)
+    send(f'{username} ha entrado a la sala.', to=room)
     emitir_lista_usuarios(room)
 
 @socketio.on('typing')
 def handle_typing(data):
     room = data['room']
-    username = data['username']
-    emit('display_typing', {'username': username}, to=room, include_self=False)
+    username = session.get('username')
+    if username:
+        emit('display_typing', {'username': username}, to=room, include_self=False)
 
 @socketio.on('disconnect')
 def on_disconnect():
@@ -204,30 +293,48 @@ def on_disconnect():
 def handle_message(data):
     room = data['room']
     msg = data['msg']
-    # Usamos el username seguro de la sesión del socket
-    sid = request.sid
-    if sid in USUARIOS_ACTIVOS:
-        username = USUARIOS_ACTIVOS[sid]['nick']
-    else:
-        # Fallback por si acaso, aunque no debería pasar si entró bien
-        username = data['username']
+
+    if 'user_id' not in session:
+        return
+
+    username = session['username']
     
     msg_id = db_manager.guardar_mensaje(room, username, msg)
     hora_actual = datetime.now().strftime('%H:%M')
 
-    send({'id': msg_id, 'msg': msg, 'username': username, 'hora': hora_actual}, to=room)
+    # Obtenemos avatar fresco
+    avatar = session.get('avatar_url', f"https://api.dicebear.com/7.x/avataaars/svg?seed={username}&backgroundColor=b6e3f4")
+    user_id = session.get('user_id')
+
+    send({'id': msg_id, 'msg': msg, 'username': username, 'user_id': user_id, 'hora': hora_actual, 'avatar': avatar}, to=room)
 
 @socketio.on('borrar_mensaje')
 def handle_delete(data):
     msg_id = data['id']
     room = data['room']
+    # Aquí podríamos añadir validación de propiedad del mensaje
     db_manager.borrar_mensaje_db(msg_id)
     emit('mensaje_eliminado', {'id': msg_id}, to=room)
 
 def emitir_lista_usuarios(sala_id):
-    lista = [u['nick'] for u in USUARIOS_ACTIVOS.values() if u['sala'] == sala_id]
-    lista_unica = list(set(lista))
-    socketio.emit('update_users', lista_unica, to=sala_id)
+    # Ahora enviamos objetos más completos
+    lista = []
+    ids_procesados = set()
+
+    for u in USUARIOS_ACTIVOS.values():
+        if u['sala'] == sala_id and u['id'] not in ids_procesados:
+            # Recuperamos avatar de la DB o sesión si fuera posible, por ahora simulamos con DB
+            user_db = db_manager.get_user_by_id(u['id'])
+            avatar = user_db['avatar_url'] if user_db else ""
+
+            lista.append({
+                'username': u['nick'],
+                'avatar': avatar,
+                'id': u['id']
+            })
+            ids_procesados.add(u['id'])
+
+    socketio.emit('update_users', lista, to=sala_id)
 
 # --- SEO Y SEGURIDAD ---
 
