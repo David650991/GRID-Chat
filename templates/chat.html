@@ -1,276 +1,456 @@
 {% extends 'base.html' %}
 
-{% block content %}
-<div class='chat-container'>
-    <div class='chat-header'>
-        <div class="header-info">
-            <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ info_sala.nombre | urlencode }}&backgroundColor=16a085" class="header-avatar" alt="Sala">
-            
-            <div>
-                <h3 style="margin: 0; font-size: 1.1em;">{{ info_sala.nombre }}</h3>
-                {% if es_admin %}
-                    <span style="background: #e74c3c; padding: 2px 6px; border-radius: 4px; font-size: 0.7em;">MODO ADMIN</span>
-                {% endif %}
-                <small style="font-size: 0.8em; opacity: 0.7; display:block; color: #00e676;">📍 {{ info_sala.geo }}</small>
+{% block body_content %}
+<div class="app-layout">
+    <!-- SIDEBAR IZQUIERDA (Contactos y Perfil) -->
+    <aside class="sidebar">
+        <!-- PERFIL PROPIO -->
+        <div class="user-profile-header">
+            <div class="avatar-wrapper" onclick="openProfileModal()">
+                <img src="{{ user.avatar_url }}" alt="Avatar" class="avatar-img">
+                <span class="status-indicator online"></span>
             </div>
-        </div>
-        <a href='{{ url_for('index') }}' class='btn-salir'>Salir</a>
-    </div>
-    
-    <div class="chat-layout">
-        <div class="chat-main">
-            <div id='chat-window'></div>
-            
-            <div id="typing-indicator" class="typing-text"></div>
-            
-            <div class='chat-input'>
-                <div id="emoji-picker-container"></div>
-                <button id="emoji-trigger" class="btn-emoji" type="button">😀</button>
-                
-                <input type='text' id='message_input' placeholder='Escribe un mensaje...' autocomplete="off">
-                <button onclick='sendMessage()'>➤</button>
+            <div class="user-details">
+                <h3>{{ user.username }}</h3>
+                <span class="user-status">Disponible</span>
+            </div>
+            <div class="user-actions">
+                <button class="btn-icon" onclick="openProfileModal()" title="Configuración">⚙️</button>
+                <a href="{{ url_for('logout') }}" class="btn-icon" title="Salir">🚪</a>
             </div>
         </div>
 
-        <div class="users-sidebar">
-            <div class="users-header">👥 En línea</div>
-            <ul id="users-list"></ul>
+        <!-- BUSCADOR -->
+        <div class="search-container">
+            <div class="search-wrapper">
+                <span class="search-icon">🔍</span>
+                <input type="text" id="userSearchInput" placeholder="Buscar personas..." autocomplete="off">
+            </div>
+            <div id="searchResults" class="search-results hidden"></div>
+        </div>
+
+        <!-- TABS DE LISTAS -->
+        <div class="sidebar-tabs">
+            <button class="tab-btn active" onclick="switchTab('room')">Sala</button>
+            <button class="tab-btn" onclick="switchTab('contacts')">Contactos</button>
+        </div>
+
+        <!-- LISTA DE USUARIOS EN SALA -->
+        <div id="tab-room" class="list-container active">
+            <div class="section-title">EN LÍNEA - {{ info_sala.nombre }}</div>
+            <ul id="room-users-list" class="user-list">
+                <!-- Se llena con SocketIO -->
+            </ul>
+        </div>
+
+        <!-- LISTA DE CONTACTOS -->
+        <div id="tab-contacts" class="list-container">
+            <div class="section-title">MIS CONTACTOS</div>
+            <ul id="contacts-list" class="user-list">
+                <!-- Se llena con API -->
+            </ul>
+            <div id="contacts-empty" class="empty-state hidden">No tienes contactos aún.</div>
+        </div>
+    </aside>
+
+    <!-- ÁREA PRINCIPAL DE CHAT -->
+    <main class="chat-area">
+        <header class="chat-header">
+            <div class="header-left">
+                <div class="room-avatar">
+                    <img src="https://api.dicebear.com/7.x/initials/svg?seed={{ info_sala.nombre }}&backgroundColor=16a085" alt="Sala">
+                </div>
+                <div class="room-info">
+                    <h2>{{ info_sala.nombre }}</h2>
+                    <span class="room-geo">📍 {{ info_sala.geo }}</span>
+                </div>
+            </div>
+            <div class="header-right">
+                <a href="{{ url_for('index') }}" class="btn-secondary">Cambiar Sala</a>
+            </div>
+        </header>
+
+        <div id="chat-window" class="messages-container">
+            <!-- Mensajes dinámicos -->
+        </div>
+
+        <div id="typing-indicator" class="typing-bar"></div>
+
+        <div class="chat-input-wrapper">
+            <button id="emoji-trigger" class="btn-emoji">😀</button>
+            <input type="text" id="message_input" placeholder="Escribe un mensaje..." autocomplete="off">
+            <button onclick="sendMessage()" class="btn-send">
+                <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M2.01 21L23 12 2.01 3 2 10l15 2-15 2z"></path></svg>
+            </button>
+        </div>
+    </main>
+</div>
+
+<!-- MODAL PERFIL -->
+<div id="profileModal" class="modal-overlay hidden">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>Editar Perfil</h3>
+            <button onclick="closeProfileModal()" class="btn-close">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="profile-preview">
+                <img src="{{ user.avatar_url }}" id="editAvatarPreview">
+            </div>
+            <div class="form-group">
+                <label>Avatar URL</label>
+                <div style="display:flex; gap:5px;">
+                    <input type="text" id="editAvatarUrl" value="{{ user.avatar_url }}" oninput="updateEditPreview()">
+                    <button class="btn-small" onclick="randomAvatar()">🎲</button>
+                </div>
+            </div>
+            <div class="form-group">
+                <label>Bio / Estado</label>
+                <input type="text" id="editBio" value="{{ user.bio or '' }}" placeholder="¡Hola! Estoy usando Grid.">
+            </div>
+            <div class="form-group">
+                <label>Email</label>
+                <input type="email" id="editEmail" value="{{ user.email or '' }}">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button onclick="saveProfile()" class="btn-primary">Guardar Cambios</button>
         </div>
     </div>
 </div>
 
+<!-- MENÚ CONTEXTUAL (Click Derecho) -->
+<div id="contextMenu" class="context-menu hidden">
+    <div class="menu-item" onclick="replyMessage()">↩️ Responder</div>
+    <div class="menu-item" onclick="copyMessage()">📋 Copiar Texto</div>
+    <div class="menu-divider"></div>
+    <div class="menu-item danger" onclick="blockUserContext()">🚫 Bloquear Usuario</div>
+    <div class="menu-item danger" id="deleteOption" style="display:none;" onclick="deleteMessageContext()">🗑️ Eliminar</div>
+</div>
+
 <script type="module">
     import { createPopup } from 'https://unpkg.com/@picmo/popup-picker@latest/dist/index.js?module';
-    document.addEventListener('DOMContentLoaded', () => {
-        const trigger = document.querySelector('#emoji-trigger');
-        const input = document.querySelector('#message_input');
 
-        try {
-            const picker = createPopup({
-                theme: 'dark' // Tema oscuro para que combine
-            }, {
-                referenceElement: trigger,
-                triggerElement: trigger,
-                position: 'top-start'
-            });
-
-            trigger.addEventListener('click', () => {
-                picker.toggle();
-            });
-
-            picker.addEventListener('emoji:select', (selection) => {
-                const start = input.selectionStart;
-                const end = input.selectionEnd;
-                const text = input.value;
-                input.value = text.substring(0, start) + selection.emoji + text.substring(end);
-                input.focus();
-                input.selectionStart = input.selectionEnd = start + selection.emoji.length;
-            });
-        } catch (error) {
-            console.error("Error cargando emojis:", error);
-        }
-    });
+    // EMOJI PICKER
+    const trigger = document.querySelector('#emoji-trigger');
+    const input = document.querySelector('#message_input');
+    try {
+        const picker = createPopup({ theme: 'dark' }, {
+            referenceElement: trigger,
+            triggerElement: trigger,
+            position: 'top-start'
+        });
+        trigger.addEventListener('click', () => picker.toggle());
+        picker.addEventListener('emoji:select', (selection) => {
+            input.value += selection.emoji;
+            input.focus();
+        });
+    } catch(e) {}
 </script>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
 <script>
     const socket = io();
     const room = '{{ sala_id }}';
-    let myUsername = '{{ nickname }}'; 
+    const myUsername = '{{ user.username }}';
+    const myId = {{ user.id }};
     const isAdmin = {{ 'true' if es_admin else 'false' }};
 
-    // Intentamos unirnos
-    socket.emit('join', { username: myUsername, room: room });
+    // --- ESTADO GLOBAL ---
+    let contacts = [];
+    let blockedIds = new Set();
+    let currentContextMsg = null;
 
-    // --- MANEJO DE ERROR DE NOMBRE DUPLICADO ---
-    socket.on('error_username', function(data) {
-        alert("⚠️ " + data.mensaje + "\n\nSugerencia: " + data.sugerencia + "\n\nPor favor, elige otro nombre.");
-        // Redirigir al inicio para que elija otro nombre
-        window.location.href = '/';
+    // --- INICIALIZACIÓN ---
+    document.addEventListener('DOMContentLoaded', () => {
+        loadBlockedUsers();
+        loadContacts();
+        setupSearch();
+        setupContextMenu();
     });
 
-    socket.on('update_users', function(listaUsuarios) {
-        const listElement = document.getElementById('users-list');
-        listElement.innerHTML = ''; 
-        
-        if (listaUsuarios.length === 0) {
-            listElement.innerHTML = '<li style="color:#666; text-align:center; padding:10px;">Esperando usuarios...</li>';
-        }
+    async function loadBlockedUsers() {
+        try {
+            const res = await fetch('/api/blocked_users');
+            const list = await res.json();
+            list.forEach(u => blockedIds.add(u.id));
+        } catch(e) { console.error("Error loading blocks", e); }
+    }
 
-        listaUsuarios.forEach(user => {
-            const li = document.createElement('li');
-            
-            // Creamos elementos
-            const dot = document.createElement('div');
-            dot.className = 'status-dot';
-            
-            const img = document.createElement('img');
-            img.src = getAvatar(user);
-            
-            const span = document.createElement('span');
-            span.innerText = user;
-            
-            if (user === myUsername) {
-                span.style.fontWeight = 'bold';
-                span.innerText += ' (Tú)';
-                span.style.color = '#fff';
-                // Resaltar usuario propio
-                li.style.backgroundColor = 'rgba(0, 230, 118, 0.15)'; 
-                li.style.borderLeft = '3px solid #00e676';
-            }
+    // --- SOCKET IO ---
+    socket.on('connect', () => {
+        socket.emit('join', { room: room });
+    });
 
-            // Orden correcto: Punto -> Foto -> Nombre
-            li.appendChild(dot);
-            li.appendChild(img);
-            li.appendChild(span);
-            listElement.appendChild(li);
+    socket.on('message', (data) => appendMessage(data));
+    socket.on('historial_previo', (msgs) => {
+        msgs.forEach(m => appendMessage(m));
+        scrollToBottom();
+    });
+
+    socket.on('update_users', (users) => {
+        const list = document.getElementById('room-users-list');
+        list.innerHTML = '';
+        users.forEach(u => {
+            const li = createContactItem(u, false);
+            list.appendChild(li);
         });
     });
 
-    function appendMessage(data, isSystem = false) {
+    socket.on('actualizar_reacciones', (data) => {
+        updateReactionsUI(data.id, data.reacciones);
+    });
+
+    // --- RENDERIZADO DE MENSAJES ---
+    function appendMessage(data) {
+        // Bloqueo
+        if (data.user_id && blockedIds.has(data.user_id)) return;
+
         const chatWindow = document.getElementById('chat-window');
+        const isMe = data.username === myUsername;
+
         const div = document.createElement('div');
-        if (data.id) div.id = 'msg-' + data.id;
+        div.className = `message ${isMe ? 'message-own' : 'message-other'}`;
+        div.id = `msg-${data.id}`;
+        div.dataset.id = data.id;
+        div.dataset.username = data.username;
+        div.dataset.userId = data.user_id;
+        div.dataset.text = data.msg;
 
-        if (isSystem) {
-            div.className = 'mensaje mensaje-sistema';
-            div.innerText = data;
-        } else {
-            const isMe = data.username === myUsername;
-            div.className = isMe ? 'mensaje mensaje-mio' : 'mensaje mensaje-otro';
-            
-            let htmlContent = '';
-            if (!isMe) {
-                htmlContent += `
-                    <div style="display: flex; align-items: center; margin-bottom: 5px;">
-                        <img src="${getAvatar(data.username)}" style="width: 20px; height: 20px; border-radius: 50%; margin-right: 5px;">
-                        <span class="usuario-label">${data.username}</span>
+        // Avatar
+        const avatarUrl = data.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${data.username}`;
+
+        div.innerHTML = `
+            ${!isMe ? `<img src="${avatarUrl}" class="msg-avatar">` : ''}
+            <div class="msg-content">
+                ${!isMe ? `<div class="msg-author">${data.username}</div>` : ''}
+                <div class="msg-text">${formatMessage(data.msg)}</div>
+                <div class="msg-meta">
+                    <span class="msg-time">${data.hora || ''}</span>
+                    <div class="reactions-container" id="react-container-${data.id}">
+                        ${renderReactions(data.id, data.reacciones || {})}
                     </div>
-                `;
-                playNotification();
-            }
-            
-            htmlContent += formatMessage(data.msg);
-            
-            const hora = data.hora || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-            htmlContent += `<span class="msg-time">${hora}</span>`;
-            
-            htmlContent += generarHTMLReacciones(data.id, data.reacciones || {});
+                </div>
+            </div>
+        `;
 
-            if (isAdmin && data.id) {
-                htmlContent += ` <span class="btn-borrar" onclick="deleteMessage(${data.id})" title="Eliminar">🗑️</span>`;
-            }
-            div.innerHTML = htmlContent;
-        }
+        // Evento Context Menu
+        div.addEventListener('contextmenu', (e) => showContextMenu(e, data));
+
         chatWindow.appendChild(div);
-        chatWindow.scrollTop = chatWindow.scrollHeight;
-    }
-
-    function getAvatar(username) {
-        const safeUser = encodeURIComponent(username);
-        return `https://api.dicebear.com/7.x/avataaars/svg?seed=${safeUser}&backgroundColor=b6e3f4`;
-    }
-
-    const notifSound = new Audio('https://cdn.freesound.org/previews/536/536108_10813958-lq.mp3');
-    function playNotification() {
-        notifSound.play().catch(e => {});
+        scrollToBottom();
     }
 
     function formatMessage(text) {
-        const urlRegex = /(https?:\/\/[^\s]+)/g;
-        return text.replace(urlRegex, function(url) {
-            if (url.match(/\.(jpeg|jpg|gif|png)$/i)) {
-                return `<br><a href="${url}" target="_blank"><img src="${url}" class="chat-image" alt="Imagen"></a>`;
-            } else if (url.includes('youtube.com/watch') || url.includes('youtu.be/')) {
-                let videoId = url.includes('v=') ? url.split('v=')[1].split('&')[0] : url.split('/').pop();
-                return `<br><div class="video-container"><iframe src="https://www.youtube.com/embed/${videoId}" frameborder="0" allowfullscreen></iframe></div>`;
-            } else {
-                return `<a href="${url}" target="_blank" class="chat-link">${url}</a>`;
-            }
-        });
+        return text.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" class="chat-link">$1</a>');
     }
 
-    let typingTimer;
-    const inputField = document.getElementById('message_input');
-    const typingDiv = document.getElementById('typing-indicator');
-
-    inputField.addEventListener('input', () => {
-        socket.emit('typing', { room: room, username: myUsername });
-    });
-
-    socket.on('display_typing', function(data) {
-        typingDiv.innerText = `${data.username} está escribiendo...`;
-        typingDiv.style.opacity = '1';
-        clearTimeout(typingTimer);
-        typingTimer = setTimeout(() => {
-            typingDiv.style.opacity = '0';
-        }, 1000);
-    });
-
-    const reactionOptions = ['❤️', '😂', '😮', '😢', '👍'];
-    function generarHTMLReacciones(msgId, reaccionesDict) {
-        let buttonsHtml = '<div class="reaction-buttons">';
-        reactionOptions.forEach(emoji => {
-            buttonsHtml += `<button class="reaction-btn" onclick="enviarReaccion(${msgId}, '${emoji}')">${emoji}</button>`;
-        });
-        buttonsHtml += '</div>';
-
-        let countsHtml = '';
-        for (const [emoji, count] of Object.entries(reaccionesDict)) {
-            if (count > 0) {
-                // Estilo mejorado para contadores
-                countsHtml += `<span class="reaction-count">${emoji} <small style="margin-left:4px;">${count}</small></span>`;
-            }
-        }
-        return `<div class="reaction-bar" id="react-bar-${msgId}">${countsHtml}${buttonsHtml}</div>`;
+    function scrollToBottom() {
+        const win = document.getElementById('chat-window');
+        win.scrollTop = win.scrollHeight;
     }
 
-    window.enviarReaccion = function(msgId, emoji) {
-        socket.emit('reaccionar', { id: msgId, emoji: emoji, room: room, username: myUsername });
-        if (navigator.vibrate) navigator.vibrate(50);
-    };
-
-    socket.on('actualizar_reacciones', function(data) {
-        const bar = document.getElementById('react-bar-' + data.id);
-        if (bar) bar.outerHTML = generarHTMLReacciones(data.id, data.reacciones);
-    });
-
-    socket.on('message', function(data) {
-        appendMessage(data, typeof data === 'string');
-    });
-
-    socket.on('historial_previo', function(historial) {
-        historial.forEach(item => appendMessage(item, false));
-        const div = document.createElement('div');
-        div.style.textAlign = 'center';
-        div.style.color = '#666';
-        div.style.margin = '15px 0';
-        div.style.fontSize = '0.8em';
-        div.innerText = '--- Historial Reciente ---';
-        document.getElementById('chat-window').appendChild(div);
-    });
-    
     function sendMessage() {
-        const text = inputField.value.trim();
+        const input = document.getElementById('message_input');
+        const text = input.value.trim();
         if (text) {
-            socket.emit('message', { msg: text, username: myUsername, room: room });
-            inputField.value = '';
-            inputField.focus();
+            socket.emit('message', { msg: text, room: room });
+            input.value = '';
         }
     }
-    
-    inputField.addEventListener('keypress', function (e) {
+    document.getElementById('message_input').addEventListener('keypress', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
 
-    window.deleteMessage = function(id) {
-        if (confirm('¿Borrar mensaje?')) socket.emit('borrar_mensaje', { id: id, room: room });
+    // --- REACCIONES ---
+    window.react = function(id, emoji) {
+        socket.emit('reaccionar', { id: id, emoji: emoji, room: room });
     };
-    socket.on('mensaje_eliminado', function(data) {
-        const msgDiv = document.getElementById('msg-' + data.id);
-        if (msgDiv) {
-            msgDiv.style.opacity = '0';
-            setTimeout(() => msgDiv.remove(), 500);
+
+    function renderReactions(msgId, reactions) {
+        let html = '';
+        for (const [emoji, count] of Object.entries(reactions)) {
+            if (count > 0) {
+                html += `<span class="reaction-tag" onclick="react(${msgId}, '${emoji}')">${emoji} ${count}</span>`;
+            }
         }
-    });
+        // Botón añadir
+        html += `<button class="add-reaction-btn" onclick="toggleReactionPicker(${msgId})">+</button>`;
+        return html;
+    }
+
+    function updateReactionsUI(msgId, reactions) {
+        const container = document.getElementById(`react-container-${msgId}`);
+        if (container) container.innerHTML = renderReactions(msgId, reactions);
+    }
+
+    // --- BÚSQUEDA Y CONTACTOS ---
+    function setupSearch() {
+        const input = document.getElementById('userSearchInput');
+        const resultsDiv = document.getElementById('searchResults');
+
+        input.addEventListener('input', async (e) => {
+            const query = e.target.value;
+            if (query.length < 2) {
+                resultsDiv.classList.add('hidden');
+                return;
+            }
+
+            const res = await fetch(`/api/search_users?q=${encodeURIComponent(query)}`);
+            const users = await res.json();
+
+            resultsDiv.innerHTML = '';
+            if (users.length > 0) {
+                resultsDiv.classList.remove('hidden');
+                users.forEach(u => {
+                    const div = document.createElement('div');
+                    div.className = 'search-item';
+                    div.innerHTML = `
+                        <img src="${u.avatar_url}" width="30">
+                        <span>${u.username}</span>
+                        <button class="btn-xs" onclick="addContact(${u.id})">Añadir</button>
+                    `;
+                    resultsDiv.appendChild(div);
+                });
+            } else {
+                resultsDiv.classList.add('hidden');
+            }
+        });
+    }
+
+    window.addContact = async function(userId) {
+        await fetch('/api/add_contact', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ user_id: userId })
+        });
+        document.getElementById('searchResults').classList.add('hidden');
+        document.getElementById('userSearchInput').value = '';
+        loadContacts();
+    };
+
+    async function loadContacts() {
+        const res = await fetch('/api/contacts');
+        contacts = await res.json();
+        renderContacts();
+    }
+
+    function renderContacts() {
+        const list = document.getElementById('contacts-list');
+        list.innerHTML = '';
+        contacts.forEach(u => {
+            const li = createContactItem(u, true);
+            list.appendChild(li);
+        });
+    }
+
+    function createContactItem(user, isContact) {
+        const li = document.createElement('li');
+        li.className = 'user-list-item';
+        li.innerHTML = `
+            <div class="user-avatar-small">
+                <img src="${user.avatar || user.avatar_url}">
+                <span class="status-dot"></span>
+            </div>
+            <div class="user-info-small">
+                <span class="username">${user.username}</span>
+                ${user.bio ? `<span class="user-bio">${user.bio}</span>` : ''}
+            </div>
+        `;
+        return li;
+    }
+
+    window.switchTab = function(tab) {
+        document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+        document.querySelectorAll('.list-container').forEach(c => c.classList.remove('active'));
+
+        event.target.classList.add('active');
+        document.getElementById(`tab-${tab}`).classList.add('active');
+    };
+
+    // --- PERFIL ---
+    window.openProfileModal = () => document.getElementById('profileModal').classList.remove('hidden');
+    window.closeProfileModal = () => document.getElementById('profileModal').classList.add('hidden');
+
+    window.updateEditPreview = () => {
+        document.getElementById('editAvatarPreview').src = document.getElementById('editAvatarUrl').value;
+    };
+
+    window.randomAvatar = () => {
+        const rnd = Math.random().toString(36).substring(7);
+        const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${rnd}&backgroundColor=b6e3f4`;
+        document.getElementById('editAvatarUrl').value = url;
+        updateEditPreview();
+    };
+
+    window.saveProfile = async () => {
+        const data = {
+            avatar_url: document.getElementById('editAvatarUrl').value,
+            bio: document.getElementById('editBio').value,
+            email: document.getElementById('editEmail').value
+        };
+
+        await fetch('/api/update_profile', {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify(data)
+        });
+        location.reload();
+    };
+
+    // --- CONTEXT MENU ---
+    function showContextMenu(e, data) {
+        e.preventDefault();
+        const menu = document.getElementById('contextMenu');
+        menu.style.top = `${e.pageY}px`;
+        menu.style.left = `${e.pageX}px`;
+        menu.classList.remove('hidden');
+
+        currentContextMsg = data;
+
+        // Mostrar eliminar solo si es admin o soy yo
+        const canDelete = isAdmin || data.username === myUsername;
+        document.getElementById('deleteOption').style.display = canDelete ? 'block' : 'none';
+
+        // Cerrar al hacer click fuera
+        document.addEventListener('click', hideContextMenu, { once: true });
+    }
+
+    function hideContextMenu() {
+        document.getElementById('contextMenu').classList.add('hidden');
+    }
+
+    window.replyMessage = () => {
+        const input = document.getElementById('message_input');
+        input.value = `Respondiendo a @${currentContextMsg.username}: `;
+        input.focus();
+    };
+
+    window.copyMessage = () => {
+        navigator.clipboard.writeText(currentContextMsg.msg);
+    };
+
+    window.deleteMessageContext = () => {
+        if (confirm('¿Borrar mensaje?')) {
+            socket.emit('borrar_mensaje', { id: currentContextMsg.id, room: room });
+        }
+    };
+
+    window.blockUserContext = async () => {
+        if (confirm(`¿Bloquear a ${currentContextMsg.username}?`)) {
+             const res = await fetch('/api/block_user', {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ user_id: currentContextMsg.user_id })
+             });
+
+             if(res.ok) {
+                 alert('Usuario bloqueado. Sus mensajes desaparecerán en la próxima carga.');
+             } else {
+                 alert('Error al bloquear usuario.');
+             }
+        }
+    }
+
 </script>
 {% endblock %}

@@ -41,34 +41,26 @@
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                // Intentamos registrar desde la raíz primero (para PWA)
                 navigator.serviceWorker.register('/sw.js')
-                    .then(registration => {
-                        console.log('GRID-Chat PWA Lista:', registration.scope);
-                    })
                     .catch(error => {
-                        console.log('Falló registro raíz, intentando ruta estática:', error);
-                        // Fallback a ruta estática si falla la raíz
-                        navigator.serviceWorker.register('/static/sw.js')
-                            .then(registration => {
-                                console.log('GRID-Chat SW registrado (fallback):', registration.scope);
-                            })
-                            .catch(err => console.log('Fallo total del Service Worker:', err));
+                        console.log('SW register fail:', error);
                     });
             });
         }
     </script>
 </head>
 <body>
+    {% block body_content %}
     <header>
         <div class="logo-container">
-            <img src="{{ url_for('static', filename='img/logo.svg') }}" alt="GRID-Chat Logo" class="main-logo">
+            <!-- SVG Logo Inline or Img -->
+            <h2 style="margin:0; color:#00e676;">GRID<span style="color:#fff;">Chat</span></h2>
         </div>
         <nav>
             <a href='{{ url_for('index') }}'>Inicio</a>
             <a href='{{ url_for('frases_index') }}'>📚 Frases</a>
-            {% if es_admin %}
-                <a href='{{ url_for('logout') }}' style="color: #ff6b6b;">Salir (Admin)</a>
+            {% if session.get('user_id') %}
+                <a href='{{ url_for('logout') }}' style="color: #ff6b6b;">Salir</a>
             {% endif %}
         </nav>
     </header>
@@ -104,6 +96,7 @@
     <footer>
         <p>GRID-Chat © 2025 - Desarrollado por David Vidal Ramirez</p>
     </footer>
+    {% endblock %}
     
     {% block scripts %}{% endblock %}
 </body>
