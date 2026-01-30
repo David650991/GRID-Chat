@@ -56,11 +56,11 @@
 
         <div class="auth-footer">
             {% if mode == 'login' %}
-                <a href="{{ url_for('register') }}">Solicitar Acceso</a>
+                <a href="{{ url_for('auth.register') }}">Solicitar Acceso</a>
             {% elif mode == 'register' %}
-                <a href="{{ url_for('login') }}">Volver al Login</a>
+                <a href="{{ url_for('auth.login') }}">Volver al Login</a>
             {% else %}
-                <a href="{{ url_for('index') }}">Cancelar</a>
+                <a href="{{ url_for('main.index') }}">Cancelar</a>
             {% endif %}
         </div>
     </div>

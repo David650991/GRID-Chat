@@ -16,20 +16,20 @@
             {% if es_admin %}
             <span class="room-card-badge" style="background: #331111; color: #ef4444; border-color: #551111;">ADMINISTRADOR</span>
             {% endif %}
-            <a href="{{ url_for('logout') }}" class="btn">Cerrar Sesión</a>
+            <a href="{{ url_for('auth.logout') }}" class="btn">Cerrar Sesión</a>
         </div>
     </div>
 
     <div class="flex justify-between items-center" style="margin-bottom: 20px;">
         <h2 class="auth-title" style="font-size: 1.2rem;">SALAS DE OPERACIONES</h2>
         {% if es_admin %}
-        <button class="btn btn-primary" onclick="toggleAdminPanel()">+ Nueva Sala</button>
+        <button class="btn btn-primary" id="toggleAdminBtn">+ Nueva Sala</button>
         {% endif %}
     </div>
 
     {% if es_admin %}
     <div id="adminPanel" class="hidden" style="background: var(--bg-surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 30px;">
-        <form action="{{ url_for('create_room') }}" method="POST" class="flex flex-col gap-4">
+        <form action="{{ url_for('main.create_room') }}" method="POST" class="flex flex-col gap-4">
             <div class="flex gap-4">
                 <input type="text" name="nombre" placeholder="Nombre Clave (Ej: Sector 7)" required style="flex: 1;">
                 <select name="geo" style="width: 150px;">
@@ -40,7 +40,7 @@
             </div>
             <input type="text" name="descripcion" placeholder="Descripción de la misión..." required>
             <div class="flex justify-between">
-                <button type="button" class="btn" onclick="toggleAdminPanel()">Cancelar</button>
+                <button type="button" class="btn" id="cancelAdminBtn" onclick="document.getElementById('adminPanel').classList.add('hidden')">Cancelar</button>
                 <button type="submit" class="btn btn-primary">Inicializar Sala</button>
             </div>
         </form>
@@ -63,10 +63,8 @@
     </div>
 
 </div>
+{% endblock %}
 
-<script>
-    function toggleAdminPanel() {
-        document.getElementById('adminPanel').classList.toggle('hidden');
-    }
-</script>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/dashboard.js') }}"></script>
 {% endblock %}

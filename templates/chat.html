@@ -1,7 +1,10 @@
 {% extends 'base.html' %}
 
-{% block body_content %}
-<div class="app-container">
+{% block content %}
+<div class="app-container" id="chat-config"
+     data-room="{{ sala_id }}"
+     data-username="{{ user.username }}">
+
     <!-- SIDEBAR -->
     <aside class="sidebar" id="mainSidebar">
         <!-- USER PROFILE HEADER -->
@@ -49,7 +52,7 @@
         </div>
 
         <div style="padding: 10px; border-top: 1px solid var(--border-light);">
-            <a href="{{ url_for('logout') }}" class="btn btn-danger" style="width:100%; justify-content:center;">Cerrar Sesión</a>
+            <a href="{{ url_for('auth.logout') }}" class="btn btn-danger" style="width:100%; justify-content:center;">Cerrar Sesión</a>
         </div>
     </aside>
 
@@ -66,7 +69,7 @@
                 </div>
             </div>
             <div>
-                <a href="{{ url_for('index') }}" class="btn">Salir de Sala</a>
+                <a href="{{ url_for('main.index') }}" class="btn">Salir de Sala</a>
             </div>
         </div>
 
@@ -131,227 +134,8 @@
     <div style="height: 1px; background: var(--border-light); margin: 0;"></div>
     <div id="deleteOption" onclick="deleteMessageContext()" style="padding: 10px 15px; cursor: pointer; color: #ef4444; font-size: 0.9rem; transition: background 0.1s;">🗑️ Eliminar Mensaje</div>
 </div>
+{% endblock %}
 
-<!-- SOCKET & LOGIC -->
-<script type="module">
-    import { createPopup } from 'https://unpkg.com/@picmo/popup-picker@latest/dist/index.js?module';
-    const trigger = document.querySelector('#emoji-trigger');
-    const input = document.querySelector('#message_input');
-    try {
-        const picker = createPopup({ theme: 'dark' }, { referenceElement: trigger, triggerElement: trigger, position: 'top-start' });
-        trigger.addEventListener('click', () => picker.toggle());
-        picker.addEventListener('emoji:select', (selection) => {
-            input.value += selection.emoji;
-            input.focus();
-        });
-    } catch(e) {}
-</script>
-
-<script src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js"></script>
-<script>
-    const socket = io();
-    const room = '{{ sala_id }}';
-    const myUsername = '{{ user.username }}';
-    let lastMessageUser = null; // Para agrupación
-
-    // AUTO-EXPAND TEXTAREA
-    const tx = document.getElementsByTagName("textarea");
-    for (let i = 0; i < tx.length; i++) {
-        tx[i].setAttribute("style", "height:" + (tx[i].scrollHeight) + "px;overflow-y:hidden;");
-        tx[i].addEventListener("input", OnInput, false);
-    }
-    function OnInput() {
-        this.style.height = "auto";
-        this.style.height = (this.scrollHeight) + "px";
-    }
-
-    // SOCKET INIT
-    socket.on('connect', () => socket.emit('join', { room: room }));
-
-    // MESSAGE HANDLING (ADVANCED GROUPING)
-    socket.on('message', (data) => appendMessage(data));
-    socket.on('historial_previo', (msgs) => {
-        document.getElementById('chat-window').innerHTML = ''; // Clear
-        lastMessageUser = null;
-        msgs.forEach(appendMessage);
-        scrollToBottom();
-    });
-
-    socket.on('update_users', (users) => {
-        const list = document.getElementById('room-users-list');
-        list.innerHTML = '';
-        users.forEach(u => {
-            list.innerHTML += `
-                <div class="user-item">
-                    <img src="${u.avatar}" class="user-item-avatar">
-                    <div class="user-item-info">
-                        <span class="user-item-name">${u.username}</span>
-                    </div>
-                </div>`;
-        });
-    });
-
-    function appendMessage(data) {
-        const win = document.getElementById('chat-window');
-        const isMe = data.username === myUsername;
-        const sameUser = lastMessageUser === data.username;
-
-        // Si es el mismo usuario, añadimos al grupo anterior si existe
-        if (sameUser) {
-            const lastGroup = win.lastElementChild;
-            if (lastGroup && lastGroup.classList.contains('msg-group')) {
-                const body = lastGroup.querySelector('.msg-body');
-                const bubble = document.createElement('div');
-                bubble.className = 'msg-bubble';
-                bubble.innerHTML = formatMessage(data.msg);
-                // Add meta/actions to bubble wrapper if needed, for now simplistic
-                body.appendChild(bubble);
-                lastMessageUser = data.username;
-                scrollToBottom();
-                return;
-            }
-        }
-
-        // Nuevo Grupo
-        const group = document.createElement('div');
-        group.className = 'msg-group';
-        group.innerHTML = `
-            <img src="${data.avatar || 'https://api.dicebear.com/7.x/identicon/svg?seed='+data.username}" class="msg-avatar">
-            <div class="msg-body">
-                <div class="msg-header">
-                    <span class="msg-username">${data.username}</span>
-                    <span class="msg-timestamp">${data.hora || ''}</span>
-                </div>
-                <div class="msg-bubble" id="msg-${data.id}">${formatMessage(data.msg)}</div>
-            </div>
-            <div class="msg-actions">
-                <button class="tool-btn" onclick="triggerCtx(${data.id}, '${data.username}', '${data.msg.replace(/'/g, "\\'")}')">⋮</button>
-            </div>
-        `;
-
-        // Context Menu trigger
-        group.addEventListener('contextmenu', (e) => {
-            e.preventDefault();
-            showContextMenu(e, data);
-        });
-
-        win.appendChild(group);
-        lastMessageUser = data.username;
-        scrollToBottom();
-    }
-
-    function escapeHtml(text) {
-        const map = {
-            '&': '&amp;',
-            '<': '&lt;',
-            '>': '&gt;',
-            '"': '&quot;',
-            "'": '&#039;'
-        };
-        return text.replace(/[&<>"']/g, function(m) { return map[m]; });
-    }
-
-    function formatMessage(text) {
-        // 1. Escape HTML to prevent XSS
-        let safeText = escapeHtml(text);
-        // 2. Auto-link URLs
-        let formatted = safeText.replace(/(https?:\/\/[^\s]+)/g, '<a href="$1" target="_blank" rel="noopener noreferrer">$1</a>');
-        return formatted;
-    }
-
-    function scrollToBottom() {
-        const win = document.getElementById('chat-window');
-        win.scrollTop = win.scrollHeight;
-    }
-
-    function sendMessage() {
-        const input = document.getElementById('message_input');
-        const val = input.value.trim();
-        if(val) {
-            socket.emit('message', { msg: val, room: room });
-            input.value = '';
-            input.style.height = 'auto'; // Reset height
-            input.focus();
-        }
-    }
-
-    // Input handlers
-    document.getElementById('message_input').addEventListener('keydown', (e) => {
-        if(e.key === 'Enter' && !e.shiftKey) {
-            e.preventDefault();
-            sendMessage();
-        }
-    });
-
-    // UI CONTROLS
-    window.switchTab = (tab) => {
-        document.querySelectorAll('.nav-tab').forEach(b => b.classList.remove('active'));
-        document.querySelectorAll('.list-viewport').forEach(c => c.classList.add('hidden'));
-        document.querySelectorAll('.list-viewport').forEach(c => c.classList.remove('active'));
-
-        event.target.classList.add('active');
-        const el = document.getElementById(`tab-${tab}`);
-        el.classList.remove('hidden');
-        el.classList.add('active');
-    };
-
-    window.openProfileModal = () => document.getElementById('profileModal').classList.remove('hidden');
-    window.closeProfileModal = () => document.getElementById('profileModal').classList.add('hidden');
-
-    // CONTEXT MENU
-    function showContextMenu(e, data) {
-        const menu = document.getElementById('contextMenu');
-        menu.style.top = e.pageY + 'px';
-        menu.style.left = e.pageX + 'px';
-        menu.classList.remove('hidden');
-        window.currentMsg = data;
-
-        // Delete option logic
-        const canDelete = (data.username === myUsername); // Add admin check if needed
-        document.getElementById('deleteOption').style.display = canDelete ? 'block' : 'none';
-
-        document.addEventListener('click', () => menu.classList.add('hidden'), { once: true });
-    }
-    window.triggerCtx = (id, username, msg) => {
-        // Manual trigger for the 3-dots button
-        // Need to simulate event or just reuse logic
-        // For simplicity, just log it or TODO
-    };
-
-    window.replyMessage = () => {
-        const input = document.getElementById('message_input');
-        input.value = `> @${window.currentMsg.username}: ${window.currentMsg.msg}\n`;
-        input.focus();
-    };
-    window.copyMessage = () => navigator.clipboard.writeText(window.currentMsg.msg);
-    window.deleteMessageContext = () => socket.emit('borrar_mensaje', { id: window.currentMsg.id, room: room });
-
-    // MOBILE RESPONSIVE
-    document.getElementById('mobileMenuBtn').addEventListener('click', () => {
-        document.getElementById('mainSidebar').classList.toggle('visible');
-    });
-
-    // PROFILE
-    window.updateEditPreview = () => document.getElementById('editAvatarPreview').src = document.getElementById('editAvatarUrl').value;
-    window.randomAvatar = () => {
-        const rnd = Math.random().toString(36).substring(7);
-        document.getElementById('editAvatarUrl').value = `https://api.dicebear.com/7.x/avataaars/svg?seed=${rnd}`;
-        updateEditPreview();
-    };
-    window.saveProfile = async () => {
-        const data = {
-            avatar_url: document.getElementById('editAvatarUrl').value,
-            bio: document.getElementById('editBio').value,
-            email: document.getElementById('editEmail').value
-        };
-        await fetch('/api/update_profile', { method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify(data) });
-        location.reload();
-    };
-</script>
-
-<style>
-    /* LOCAL OVERRIDES FOR CHAT GROUPING ANIMATION */
-    .msg-group { margin-bottom: 2px; }
-    .msg-bubble + .msg-bubble { margin-top: 4px; }
-</style>
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/chat.js') }}" type="module"></script>
 {% endblock %}
