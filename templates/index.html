@@ -1,253 +1,72 @@
-{% extends 'base.html' %} {% block content %}
-<div class="container">
-  <div
-    style="
-      text-align: center;
-      margin-bottom: 30px;
-      padding: 20px;
-      background: linear-gradient(135deg, #1e1e1e, #252526);
-      border-radius: 12px;
-      border: 1px solid #333;
-      box-shadow: 0 4px 15px rgba(0, 230, 118, 0.1);
-    "
-  >
-    <h2
-      style="
-        color: #00e676;
-        margin: 0;
-        font-size: 1.8em;
-        text-transform: uppercase;
-        letter-spacing: 2px;
-      "
-    >
-      🚀 Centro de Comando Digital
-    </h2>
-    <p style="color: #b0b0b0; margin-top: 10px; font-size: 0.9em">
-      Conectando comunidades en tiempo real. Tu voz, sin fronteras.
-    </p>
-  </div>
+{% extends 'base.html' %}
 
-  <div
-    style="
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      margin-bottom: 15px;
-    "
-  >
-    <h3
-      style="color: #e0e0e0; border-left: 4px solid #00e676; padding-left: 10px"
-    >
-      Salas Disponibles
-    </h3>
+{% block content %}
+<div class="dashboard-layout">
+
+    <div class="hero-section">
+        <h1 class="hero-title">Centro de Comando</h1>
+        <p class="hero-subtitle">Plataforma de comunicaciones encriptada y distribuida.</p>
+
+        <div style="margin-top: 20px; display: flex; align-items: center; gap: 20px;">
+            <div class="user-mini-profile" style="background: var(--bg-surface); padding: 10px 20px; border: 1px solid var(--border-light);">
+                <img src="{{ user.avatar_url }}" style="width: 32px; height: 32px; border-radius: 50%; margin-right: 10px;">
+                <span style="font-weight: 600;">{{ user.username }}</span>
+                <span style="color: var(--accent-status-online); margin-left: 10px;">● Online</span>
+            </div>
+            {% if es_admin %}
+            <span class="room-card-badge" style="background: #331111; color: #ef4444; border-color: #551111;">ADMINISTRADOR</span>
+            {% endif %}
+            <a href="{{ url_for('logout') }}" class="btn">Cerrar Sesión</a>
+        </div>
+    </div>
+
+    <div class="flex justify-between items-center" style="margin-bottom: 20px;">
+        <h2 class="auth-title" style="font-size: 1.2rem;">SALAS DE OPERACIONES</h2>
+        {% if es_admin %}
+        <button class="btn btn-primary" onclick="toggleAdminPanel()">+ Nueva Sala</button>
+        {% endif %}
+    </div>
+
     {% if es_admin %}
-    <div>
-      <span
-        style="
-          background: #cf6679;
-          color: white;
-          padding: 5px 10px;
-          border-radius: 5px;
-          font-size: 0.8em;
-          font-weight: bold;
-        "
-        >ADMIN PANEL</span
-      >
-      <a
-        href="{{ url_for('logout') }}"
-        style="
-          color: #b0b0b0;
-          font-size: 0.8em;
-          margin-left: 10px;
-          text-decoration: none;
-        "
-        >Cerrar Sesión</a
-      >
+    <div id="adminPanel" class="hidden" style="background: var(--bg-surface); padding: 20px; border-radius: 8px; border: 1px solid var(--border-light); margin-bottom: 30px;">
+        <form action="{{ url_for('create_room') }}" method="POST" class="flex flex-col gap-4">
+            <div class="flex gap-4">
+                <input type="text" name="nombre" placeholder="Nombre Clave (Ej: Sector 7)" required style="flex: 1;">
+                <select name="geo" style="width: 150px;">
+                    <option value="local">LOCAL</option>
+                    <option value="regional">REGIONAL</option>
+                    <option value="global">GLOBAL</option>
+                </select>
+            </div>
+            <input type="text" name="descripcion" placeholder="Descripción de la misión..." required>
+            <div class="flex justify-between">
+                <button type="button" class="btn" onclick="toggleAdminPanel()">Cancelar</button>
+                <button type="submit" class="btn btn-primary">Inicializar Sala</button>
+            </div>
+        </form>
     </div>
     {% endif %}
-  </div>
 
-  {% if es_admin %}
-  <div
-    style="
-      background: #2c2c2c;
-      padding: 15px;
-      border-radius: 8px;
-      margin-bottom: 20px;
-      border: 1px solid #444;
-    "
-  >
-    <h3 style="color: #00e676; margin-top: 0">🛠️ Crear Nueva Sala</h3>
-    <form
-      action="{{ url_for('create_room') }}"
-      method="POST"
-      style="display: flex; gap: 10px; flex-wrap: wrap"
-    >
-      <input
-        type="text"
-        name="nombre"
-        placeholder="Nombre (Ej: Otatitlán)"
-        required
-        style="
-          padding: 10px;
-          background: #1e1e1e;
-          border: 1px solid #444;
-          color: white;
-          border-radius: 5px;
-        "
-      />
-      <select
-        name="geo"
-        style="
-          padding: 10px;
-          background: #1e1e1e;
-          border: 1px solid #444;
-          color: white;
-          border-radius: 5px;
-        "
-      >
-        <option value="local">Local</option>
-        <option value="cercano">Cercano</option>
-        <option value="regional">Regional</option>
-        <option value="global">Global</option>
-      </select>
-      <input
-        type="text"
-        name="descripcion"
-        placeholder="Descripción breve"
-        style="
-          padding: 10px;
-          flex: 1;
-          background: #1e1e1e;
-          border: 1px solid #444;
-          color: white;
-          border-radius: 5px;
-        "
-      />
-      <button
-        type="submit"
-        style="
-          background: #00e676;
-          color: #000;
-          font-weight: bold;
-          border: none;
-          padding: 10px 20px;
-          cursor: pointer;
-          border-radius: 5px;
-        "
-      >
-        + Crear
-      </button>
-    </form>
-  </div>
-  {% endif %}
-
-  <div
-    style="
-      background: #1e1e1e;
-      padding: 25px;
-      border-radius: 12px;
-      margin-bottom: 30px;
-      text-align: center;
-      border: 1px solid #333;
-      box-shadow: 0 5px 15px rgba(0, 0, 0, 0.3);
-    "
-  >
-    <label
-      style="
-        font-weight: bold;
-        color: #00e676;
-        font-size: 1.2em;
-        display: block;
-        margin-bottom: 15px;
-      "
-      >👤 Tu Identidad</label
-    >
-
-    <div
-      style="margin: 20px auto; position: relative; width: 100px; height: 100px"
-    >
-      <img
-        id="avatarPreview"
-        src="{{ user.avatar_url }}"
-        style="
-          width: 100%;
-          height: 100%;
-          border-radius: 50%;
-          border: 3px solid #00e676;
-          background: #2c2c2c;
-          object-fit: cover;
-        "
-      />
+    <div class="rooms-grid">
+        {% for sala in salas %}
+        <div class="room-card" onclick="location.href='/chat/{{ sala.id }}'">
+            <div>
+                <div class="flex justify-between items-center" style="margin-bottom: 10px;">
+                    <h3 class="room-card-title">{{ sala.nombre }}</h3>
+                    <span class="room-card-badge">{{ sala.geo }}</span>
+                </div>
+                <p class="room-card-desc">{{ sala.descripcion }}</p>
+            </div>
+            <div class="room-enter-arrow">→</div>
+        </div>
+        {% endfor %}
     </div>
 
-    <h3 style="color:white; margin:0;">{{ user.username }}</h3>
-    <p style="color:#888;">{{ user.bio or 'Sin estado' }}</p>
-
-    <!-- Hidden input for compatibility if needed, but not really used now -->
-    <input type="hidden" id="userNick" value="{{ user.username }}">
-  </div>
-
-  <div class="grid-salas">
-    {% for sala in salas %}
-    <div class="card-sala">
-      <h3 style="margin-bottom: 5px">{{ sala.nombre }}</h3>
-      <span
-        class="badge"
-        style="
-          background: #333;
-          color: #aaa;
-          padding: 2px 8px;
-          border-radius: 4px;
-          font-size: 0.7em;
-          text-transform: uppercase;
-        "
-        >{{ sala.geo }}</span
-      >
-      <p style="font-size: 0.9em; color: #b0b0b0; margin: 15px 0">
-        {{ sala.descripcion }}
-      </p>
-      <button onclick="entrarSala('{{ sala.id }}')" class="btn-entrar">
-        Unirse al Chat
-      </button>
-    </div>
-    {% endfor %}
-  </div>
-
-  <footer
-    style="
-      margin-top: 50px;
-      text-align: center;
-      font-size: 0.8em;
-      color: #666;
-      border-top: 1px solid #333;
-      padding-top: 20px;
-    "
-  >
-    <p>&copy; 2025 GRID-Chat Systems</p>
-    {% if not es_admin %}
-    <a
-      href="{{ url_for('admin_page') }}"
-      style="color: #444; text-decoration: none"
-      >Acceso Admin</a
-    >
-    {% endif %}
-  </footer>
 </div>
 
 <script>
-  function updateAvatarPreview() {
-    const nick = document.getElementById("userNick").value.trim() || "Anónimo";
-    // Codificamos el nick para que espacios y caracteres especiales no rompan la imagen
-    const safeNick = encodeURIComponent(nick);
-    const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${safeNick}&backgroundColor=b6e3f4`;
-    document.getElementById("avatarPreview").src = url;
-  }
-
-  window.onload = updateAvatarPreview;
-
-  function entrarSala(salaId) {
-    window.location.href = `/chat/${salaId}`;
-  }
+    function toggleAdminPanel() {
+        document.getElementById('adminPanel').classList.toggle('hidden');
+    }
 </script>
 {% endblock %}

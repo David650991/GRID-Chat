@@ -1,71 +1,66 @@
 {% extends 'base.html' %}
 
 {% block content %}
-<div class="login-wrapper">
-    <div class="login-card">
-        <div class="login-header">
-            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=Grid" alt="Logo" class="login-logo">
-            {% if mode == 'register' %}
-                <h2>Crear Cuenta</h2>
-                <p>Únete a la mejor comunidad de chat</p>
-            {% elif mode == 'admin' %}
-                <h2>Admin Access</h2>
-                <p>Zona restringida</p>
-            {% else %}
-                <h2>Bienvenido</h2>
-                <p>Ingresa tus credenciales</p>
-            {% endif %}
+<div class="auth-layout">
+    <div class="auth-box">
+        <div class="auth-header">
+            <img src="https://api.dicebear.com/7.x/identicon/svg?seed=GridSystem" class="auth-logo" alt="Logo">
+            <h2 class="auth-title">GRID // SYSTEM</h2>
+            <p class="auth-subtitle">
+                {% if mode == 'register' %}Inicialización de Credenciales{% else %}Acceso Seguro Requerido{% endif %}
+            </p>
         </div>
 
         {% with messages = get_flashed_messages(with_categories=true) %}
             {% if messages %}
-                <div class="flash-messages">
+                <div style="margin-bottom: 20px;">
                 {% for category, message in messages %}
-                    <div class="flash-msg {{ category }}">{{ message }}</div>
+                    <div style="padding: 10px; background: rgba(255,255,255,0.05); border: 1px solid var(--border-light); border-radius: 4px; color: {% if category=='error' %}#ef4444{% else %}#10b981{% endif %}; font-size: 0.9rem;">
+                        {{ message }}
+                    </div>
                 {% endfor %}
                 </div>
             {% endif %}
         {% endwith %}
 
-        <form action="{{ request.path }}" method="POST" class="login-form">
-            
+        <form action="{{ request.path }}" method="POST" class="auth-form">
             {% if mode == 'admin' %}
-                <div class="input-group">
-                    <span class="input-icon">🔒</span>
-                    <input type="password" name="password" required placeholder="Contraseña Maestra">
+                <div class="form-group">
+                    <label>LLAVE MAESTRA</label>
+                    <input type="password" name="password" required autofocus>
                 </div>
-                <input type="hidden" name="username" value="admin"> <!-- Dummy for compatibility if needed -->
+                <input type="hidden" name="username" value="admin">
             {% else %}
-                <div class="input-group">
-                    <span class="input-icon">👤</span>
-                    <input type="text" name="username" required placeholder="Nombre de usuario" autocomplete="off">
+                <div class="form-group">
+                    <label>IDENTIFICADOR</label>
+                    <input type="text" name="username" required autocomplete="off" autofocus>
                 </div>
 
                 {% if mode == 'register' %}
-                <div class="input-group">
-                    <span class="input-icon">📧</span>
-                    <input type="email" name="email" placeholder="Email (opcional)">
+                <div class="form-group">
+                    <label>CANAL DE CONTACTO (EMAIL)</label>
+                    <input type="email" name="email">
                 </div>
                 {% endif %}
 
-                <div class="input-group">
-                    <span class="input-icon">🔑</span>
-                    <input type="password" name="password" required placeholder="Contraseña">
+                <div class="form-group">
+                    <label>CLAVE DE ACCESO</label>
+                    <input type="password" name="password" required>
                 </div>
             {% endif %}
 
-            <button type="submit" class="btn-login">
-                {% if mode == 'register' %}REGISTRARSE{% else %}INGRESAR{% endif %}
+            <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px; padding: 12px;">
+                {% if mode == 'register' %}REGISTRAR USUARIO{% else %}AUTENTICAR{% endif %}
             </button>
         </form>
 
-        <div class="login-footer">
+        <div class="auth-footer">
             {% if mode == 'login' %}
-                <p>¿No tienes cuenta? <a href="{{ url_for('register') }}">Crear cuenta</a></p>
+                <a href="{{ url_for('register') }}">Solicitar Acceso</a>
             {% elif mode == 'register' %}
-                <p>¿Ya tienes cuenta? <a href="{{ url_for('login') }}">Iniciar Sesión</a></p>
+                <a href="{{ url_for('login') }}">Volver al Login</a>
             {% else %}
-                <a href="{{ url_for('index') }}">Volver al inicio</a>
+                <a href="{{ url_for('index') }}">Cancelar</a>
             {% endif %}
         </div>
     </div>

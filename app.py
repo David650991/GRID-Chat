@@ -7,14 +7,17 @@ import random
 from functools import wraps
 
 app = Flask(__name__)
-# IMPORTANTE: Esta clave cifra las cookies. En producción debe ser muy compleja.
-app.config['SECRET_KEY'] = 'super_secreto_atomico_v2'
-socketio = SocketIO(app)
+# SECURITY CONFIGURATION
+app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'dev_key_atomica_v2') # Change in production
+# app.config['SESSION_COOKIE_HTTPONLY'] = True
+# app.config['SESSION_COOKIE_SAMESITE'] = 'Lax'
+# app.config['SESSION_COOKIE_SECURE'] = True # Uncomment in production with HTTPS
+
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 db_manager.init_db()
 
 USUARIOS_ACTIVOS = {}
-ADMIN_PASSWORD = "12345"
 
 def login_required(f):
     @wraps(f)
@@ -92,13 +95,15 @@ def admin_page():
 @app.route('/login_admin', methods=['POST'])
 def admin_login():
     password = request.form.get('password')
-    if password == ADMIN_PASSWORD:
+    admin_secret = os.environ.get('ADMIN_PASSWORD', 'admin123') # Default only for dev
+
+    if password and password == admin_secret:
         session['es_admin'] = True
-        session['nick'] = 'Administrador' # Legacy support
-        flash('¡Bienvenido, Jefe!')
+        session['nick'] = 'Administrador'
+        flash('¡Bienvenido, Jefe!', 'success')
         return redirect(url_for('index'))
     else:
-        flash('Contraseña incorrecta')
+        flash('Credenciales inválidas', 'error')
         return redirect(url_for('admin_page'))
 
 @app.route('/crear_sala', methods=['POST'])
@@ -106,14 +111,25 @@ def create_room():
     if not session.get('es_admin'):
         return "Acceso Denegado", 403
 
-    nombre = request.form.get('nombre')
-    geo = request.form.get('geo')
-    desc = request.form.get('descripcion')
+    nombre = request.form.get('nombre', '').strip()
+    geo = request.form.get('geo', 'local')
+    desc = request.form.get('descripcion', '').strip()
 
-    if nombre and geo:
+    if len(nombre) > 2 and len(nombre) < 50:
         db_manager.crear_nueva_sala(nombre, geo, desc)
+        flash('Sala creada exitosamente.', 'success')
+    else:
+        flash('Error: Nombre de sala inválido.', 'error')
 
     return redirect(url_for('index'))
+
+@app.errorhandler(404)
+def page_not_found(e):
+    return render_template('base.html', content=f"<div style='text-align:center; padding:50px;'><h1>404</h1><p>Recurso no encontrado.</p><a href='/'>Volver al inicio</a></div>"), 404
+
+@app.errorhandler(500)
+def internal_server_error(e):
+    return render_template('base.html', content=f"<div style='text-align:center; padding:50px;'><h1>500</h1><p>Error interno del sistema.</p><a href='/'>Volver al inicio</a></div>"), 500
 
 @app.route('/chat/<sala_id>')
 @login_required
@@ -374,4 +390,4 @@ def add_security_headers(response):
     return response
 
 if __name__ == '__main__':
-    socketio.run(app, debug=True, port=5000)
+    socketio.run(app, debug=False, port=5000)

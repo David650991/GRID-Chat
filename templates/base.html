@@ -4,98 +4,36 @@
     <meta charset='UTF-8'>
     <meta name='viewport' content='width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'>
     
-    <title>{% block title %}GRID-Chat | Conexión Global{% endblock %}</title>
+    <title>{% block title %}GRID SYSTEM v2{% endblock %}</title>
     
-    <!-- SEO Meta Tags -->
-    <meta name="description" content="GRID-Chat: La plataforma de comunicación geolocalizada más rápida y segura.">
-    <meta name="keywords" content="chat, grid-chat, dark mode, socketio, flask">
-    <meta name="author" content="David Vidal Ramirez">
-    <meta name="robots" content="index, follow">
-    <meta name="language" content="Spanish">
-    <meta name="revisit-after" content="7 days">
-    
-    <!-- Open Graph / Facebook -->
-    <meta property="og:title" content="GRID-Chat - Mensajería Global">
-    <meta property="og:description" content="Únete a las salas de chat geolocalizadas de GRID-Chat.">
-    <meta property="og:image" content="{{ url_for('static', filename='img/logo-web-app-manifest-512x512.png') }}">
-    <meta property="og:url" content="https://grid-chat-lknf.onrender.com">
-    <meta property="og:type" content="website">
-    <meta property="og:site_name" content="GRID-Chat">
-    <meta property="og:locale" content="es_ES">
-    
-    <!-- PWA Configuration -->
+    <!-- Meta Tags -->
+    <meta name="theme-color" content="#000000">
     <link rel="manifest" href="/manifest.json">
-    <meta name="theme-color" content="#121212">
     
-    <!-- Favicons -->
-    <link rel="icon" type="image/png" sizes="192x192" href="{{ url_for('static', filename='img/logo-web-app-manifest-192x192.png') }}">
-    <link rel="icon" type="image/x-icon" href="{{ url_for('static', filename='img/logo.ico') }}">
-    <link rel="shortcut icon" href="{{ url_for('static', filename='img/logo.ico') }}">
-    <link rel="apple-touch-icon" href="{{ url_for('static', filename='img/apple-touch-logo.png') }}">
+    <!-- Fonts (Inter) -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;800&display=swap" rel="stylesheet">
     
-    <!-- Styles and Libraries -->
+    <!-- Main Style -->
     <link rel='stylesheet' href='{{ url_for('static', filename='css/style.css') }}'>
+
+    <!-- Socket.IO -->
     <script src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.js'></script>
     
-    <!-- Service Worker Registration -->
+    <!-- Service Worker -->
     <script>
         if ('serviceWorker' in navigator) {
             window.addEventListener('load', () => {
-                navigator.serviceWorker.register('/sw.js')
-                    .catch(error => {
-                        console.log('SW register fail:', error);
-                    });
+                navigator.serviceWorker.register('/sw.js').catch(console.error);
             });
         }
     </script>
 </head>
 <body>
     {% block body_content %}
-    <header>
-        <div class="logo-container">
-            <!-- SVG Logo Inline or Img -->
-            <h2 style="margin:0; color:#00e676;">GRID<span style="color:#fff;">Chat</span></h2>
-        </div>
-        <nav>
-            <a href='{{ url_for('index') }}'>Inicio</a>
-            <a href='{{ url_for('frases_index') }}'>📚 Frases</a>
-            {% if session.get('user_id') %}
-                <a href='{{ url_for('logout') }}' style="color: #ff6b6b;">Salir</a>
-            {% endif %}
-        </nav>
-    </header>
-    
-    <div class="main-layout">
-        <aside class="ad-space ad-left">
-            <div class="ad-placeholder">
-                <small>Publicidad GRID</small>
-            </div>
-        </aside>
-
-        <main class="app-content">
-            {% with messages = get_flashed_messages() %}
-                {% if messages %}
-                    <div class="flash-messages">
-                        {% for message in messages %}
-                            <div class="flash-message">{{ message }}</div>
-                        {% endfor %}
-                    </div>
-                {% endif %}
-            {% endwith %}
-            
-            {% block content %}{% endblock %}
-        </main>
-
-        <aside class="ad-space ad-right">
-            <div class="ad-placeholder">
-                <small>Publicidad GRID</small>
-            </div>
-        </aside>
-    </div>
-
-    <footer>
-        <p>GRID-Chat © 2025 - Desarrollado por David Vidal Ramirez</p>
-    </footer>
+        <!-- Default content block if not overridden -->
+        {% block content %}{% endblock %}
     {% endblock %}
     
     {% block scripts %}{% endblock %}
